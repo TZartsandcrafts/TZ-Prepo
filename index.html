@@ -30,7 +30,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.4';
+const P='prepo:',DB='prepo_kv',VER='0.1.5';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -55,7 +55,7 @@ home(){
  return hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=pg><button class=btn onclick="FILES=[];go('add')">＋ 添加食谱（截图提取）</button><button class="btn y" onclick="go('ask')">我想做点什么 · 求建议</button>
  <input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"><p class=m>${F.cat||'全部'}${F.made?(F.made==='1'?' · 已做过':' · 未做过'):''}：${L.length} 个（右划或点 ☰ 打开分类）</p>${L.map(rowOf).join('')||'<p class=m>还没有食谱，先添加一个吧。</p>'}</div>`},
 add(){
- return hdr('添加食谱')+`<div class=pg><p class=m>选择食谱截图（可多张，最多 6 张）。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p><input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,6);$('#fc').textContent='已选 '+FILES.length+' 张'"><p id=fc class=m>已选 ${FILES.length} 张</p><button class=btn id=go onclick="extract()">开始提取并保存</button><p id=st class=m></p></div>`},
+ return hdr('添加食谱')+`<div class=pg><p class=m>选择食谱截图（可多张，最多 10 张）。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p><input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,10);$('#fc').textContent='已选 '+FILES.length+' 张'"><p id=fc class=m>已选 ${FILES.length} 张</p><button class=btn id=go onclick="extract()">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
 result(a){
  const n=a.added.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),d=a.dups.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean);
  return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>重复 ${d.length} 个，未重复添加</h2>${d.length?'<p class=m>以下食谱已有记录，已提醒你；它们会在建议时优先考虑。</p>':''}${d.map(rowOf).join('')}<button class=btn onclick="stack=[];cur={v:\'home\'};draw()">回到食谱库</button></div>`},
