@@ -30,7 +30,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.5';
+const P='prepo:',DB='prepo_kv',VER='0.1.6';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -80,29 +80,38 @@ function openDr(){const c=(k,n)=>`<button class=row onclick="F.cat='${k}';F.made
 $('#dr').onclick=e=>{if(e.target.id==='dr')$('#dr').classList.remove('on')};
 const mark=id=>{const r=S.recipes.find(x=>x.id===id);r.made=r.made?'':new Date().toLocaleDateString('zh-CN');save();draw(scrollY)};
 const setCat=(id,c)=>{if(!c)return;if(!S.cats.includes(c))S.cats.push(c);S.recipes.find(x=>x.id===id).category=c;save();back();draw(cur.y)};
-async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('错误 '+r.status));return j}
-const shrink=f=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1400/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.8).split(',')[1])};i.src=URL.createObjectURL(f)});
+async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),130000);let r,j;
+ try{r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),signal:ac.signal});j=await r.json().catch(e=>{if(e.name==='AbortError')throw e;return{}})}
+ catch(e){throw new Error(e.name==='AbortError'?'等待超过 130 秒，已中止，请稍后重试':'连不上 AI 服务（检查设置里的 Worker 地址，以及 Worker 的 ALLOW_ORIGIN）')}finally{clearTimeout(tm)}
+ if(!r.ok)throw new Error(j.error||('服务返回错误 '+r.status));return j}
+const shrink=f=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1400/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.8).split(',')[1])};i.onerror=()=>ok(null);i.src=URL.createObjectURL(f)});
 function findDup(r){const n=norm(r.name),a=new Set((r.ingredients||[]).map(i=>norm(i.name||i)));for(const x of S.recipes){const m=norm(x.name),b=new Set((x.ingredients||[]).map(i=>norm(i.name||i)));let k=0;a.forEach(t=>b.has(t)&&k++);const j=k/Math.max(1,a.size+b.size-k);if(n&&m&&(m===n||((m.includes(n)||n.includes(m))&&j>.5)||j>.85))return x}}
+const wait=m=>{const t0=Date.now(),f=()=>{const e=$('#st');if(e)e.textContent=m+'，已等待 '+Math.round((Date.now()-t0)/1000)+' 秒…'};f();const id=setInterval(f,1000);return()=>clearInterval(id)};
 const busy=(on,m)=>{$('#go').disabled=on;$('#st').textContent=m||''};
 async function extract(){
  if(!FILES.length)return busy(false,'请先选择截图');
- try{busy(true,'AI 正在识别，请稍候…');
-  const imgs=await Promise.all(FILES.map(shrink)),j=await api('/extract',{images:imgs,cats:S.cats}),added=[],dups=[];
+ let stop=()=>{};
+ try{busy(true,'正在压缩图片…');
+  const imgs=(await Promise.all(FILES.map(shrink))).filter(Boolean);
+  if(imgs.length<FILES.length)throw new Error('有 '+(FILES.length-imgs.length)+' 张图片无法读取（格式不支持？），请换成 PNG 或 JPG');
+  stop=wait('已上传 '+imgs.length+' 张，AI 正在识别');
+  const j=await api('/extract',{images:imgs,cats:S.cats}),added=[],dups=[];
   for(const r of j.recipes||[]){if(!r.name)continue;const d=findDup(r);
    if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
    r.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);r.saves=1;r.made='';r.created=Date.now();r.category=(r.category||'未分类').trim();
    if(!S.cats.includes(r.category))S.cats.push(r.category);S.recipes.push(r);added.push(r.id)}
-  await save();FILES=[];cur.y=0;stack.push(cur);stack.pop();cur={v:'result',a:{added,dups}};draw()
- }catch(e){busy(false,'失败：'+e.message)}}
+  await save();FILES=[];cur={v:'result',a:{added,dups}};draw()
+ }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
 async function suggest(){
  const need=$('#need').value.trim();if(!need)return busy(false,'请先写下你的需求');
  if(!S.recipes.length)return busy(false,'食谱库还是空的');
- try{busy(true,'AI 正在挑选…');
+ let stop=()=>{};
+ try{busy(true,'正在发送…');stop=wait('AI 正在挑选');
   const lib=S.recipes.slice(0,400).map(r=>({id:r.id,name:r.name,category:r.category,ingredients:(r.ingredients||[]).map(i=>i.name||i),made:!!r.made,saves:r.saves||1})),
   j=await api('/suggest',{need,library:lib}),list=(j.suggestions||[]).map(s=>({r:S.recipes.find(r=>r.id===s.id),match:Math.max(0,Math.min(100,Math.round(s.match))),reason:s.reason})).filter(s=>s.r);
   if(!list.length)return busy(false,'库里没有合适的食谱，换个说法试试');
   const a=list.filter(s=>!s.r.made),b=list.filter(s=>s.r.made);SG={list:[...a,...b],i:0,madeN:b.length};go('sug')
- }catch(e){busy(false,'失败：'+e.message)}}
+ }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
 async function exp(){const f=new File([JSON.stringify(S)],'prepo-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});
  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
