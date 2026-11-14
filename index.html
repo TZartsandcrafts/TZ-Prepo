@@ -23,8 +23,8 @@ h1{font-size:27px;margin:.2em 0}h2{font-size:21px;color:var(--o);margin:1.1em 0 
 .row small{display:block;color:var(--mu);font-size:15px}.ok{color:var(--r);font-weight:700}
 input,textarea{width:100%;font:inherit;padding:12px;border:2px solid var(--y);border-radius:12px;background:var(--card);color:var(--tx)}
 textarea{min-height:140px}
-#dr{position:fixed;inset:0;z-index:9;display:none;background:rgba(0,0,0,.4)}#dr.on{display:block}
-#dr div{width:78%;max-width:340px;height:100%;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 14px;overflow:auto}
+#dr{position:fixed;inset:0;z-index:9;display:none;background:rgba(0,0,0,.4);overscroll-behavior:contain}html:has(#dr.on),body:has(#dr.on){overflow:hidden}#dr.on{display:block}
+#dr div{width:78%;max-width:340px;height:100%;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 14px;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .pro{height:8px;border-radius:4px;background:#E5E7EB;margin:6px 0 14px}.pro i{display:block;height:100%;border-radius:4px;background:var(--r)}
 .big{font-size:34px;font-weight:800;color:var(--r)}
 .stk{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.12)}.stk .bar{position:static}
@@ -42,7 +42,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.11';
+const P='prepo:',DB='prepo_kv',VER='0.1.12';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -110,6 +110,11 @@ function openDr(){const ck=x=>x?'✓ ':'',c=(k,n)=>`<button class=row style="bor
  const L=filt(),ft=[F.cat||'全部',F.made&&(F.made==='1'?'已做过':'未做过'),F.q&&'搜索“'+F.q+'”'].filter(Boolean);
  $('#drc').innerHTML=`<p class=cur><b>当前：${esc(ft.join(' · '))}</b><br><span>${SORTN[F.sort]||SORTN.new} · 共 ${L.length} 个</span></p><h2>分类</h2>`+c('',S.recipes.length)+S.cats.map(k=>c(k,S.recipes.filter(r=>r.category===k).length)).join('')+`<h2>状态</h2><button class=row onclick="F.cat='';F.made='1';draw()">${ck(F.made==='1')}已做过</button><button class=row onclick="F.cat='';F.made='0';draw()">${ck(F.made==='0')}未做过</button><h2>排序</h2>`+s('new','抓取时间 · 新到旧')+s('old','抓取时间 · 旧到新')+s('name','名称');$('#dr').classList.add('on')}
 $('#dr').onclick=e=>{if(e.target.id==='dr')$('#dr').classList.remove('on')};
+/* 侧边栏打开时：上下划只滚侧边栏，滚到头或内容不够长时也不让手势传给下面的列表 */
+(()=>{let y0=0;const dr=$('#dr');
+ dr.addEventListener('touchstart',e=>{y0=e.touches[0].clientY},{passive:true});
+ dr.addEventListener('touchmove',e=>{const c=$('#drc'),dy=e.touches[0].clientY-y0;
+  if(!c.contains(e.target)||c.scrollHeight<=c.clientHeight+1||(c.scrollTop<=0&&dy>0)||(c.scrollTop+c.clientHeight>=c.scrollHeight-1&&dy<0))e.preventDefault()},{passive:false})})();
 function saveEdit(id){
  const r=S.recipes.find(x=>x.id===id),v=s=>$(s).value.trim(),ls=s=>v(s).split('\n').map(x=>x.trim()).filter(Boolean);
  if(!v('#e_n'))return $('#st').textContent='名称不能为空';
