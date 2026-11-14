@@ -13,7 +13,7 @@
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.6 -apple-system,"PingFang SC",sans-serif}
 body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(90deg,var(--o),var(--y));color:#fff;font-size:21px;font-weight:700}
-.bar span{flex:1}.bar button{background:none;border:0;color:#fff;font-size:22px;padding:6px 10px}
+.bar span{flex:1}.bar small.ver{font-size:12px;font-weight:400;margin-left:6px;opacity:.9}.bar button{background:none;border:0;color:#fff;font-size:22px;padding:6px 10px}
 .pg{padding:14px 16px 60px}
 h1{font-size:27px;margin:.2em 0}h2{font-size:21px;color:var(--o);margin:1.1em 0 .3em}
 .m{color:var(--mu)}ul,ol{padding-left:1.3em}li b{float:right;font-weight:600;color:var(--mu)}li{clear:both}
@@ -42,7 +42,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.12';
+const P='prepo:',DB='prepo_kv',VER='0.1.13';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -71,7 +71,7 @@ const VIEWS={
 home(){
  const L=filt();
  V.swipe=(d,x)=>{if(d==='R'&&x<60)openDr()};
- return '<div class=stk>'+hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=top><input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"></div></div><div class="pg hp">${L.map(rowOf).join('')||`<p class=m>${S.recipes.length?'没有符合条件的食谱。':'还没有食谱，点下面的“加食谱”添加一个吧。'}</p>`}</div>${NAV}`},
+ return '<div class=stk>'+hdr('有谱 Prepo<small class=ver>v'+VER+'</small>','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=top><input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"></div></div><div class="pg hp">${L.map(rowOf).join('')||`<p class=m>${S.recipes.length?'没有符合条件的食谱。':'还没有食谱，点下面的“加食谱”添加一个吧。'}</p>`}</div>${NAV}`},
 add(id){
  const r=id?S.recipes.find(x=>x.id===id):null;
  return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
