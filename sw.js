@@ -1,5 +1,5 @@
-// 有谱 Prepo v0.1.13 —— 缓存名带 prepo-shell- 前缀，只清理自己的旧缓存
-const PFX='prepo-shell-',CACHE=PFX+'v0.1.13';
+// 有谱 Prepo v0.1.14 —— 缓存名带 prepo-shell- 前缀，只清理自己的旧缓存
+const PFX='prepo-shell-',CACHE=PFX+'v0.1.14';
 const FILES=['./','index.html','manifest.webmanifest','icon-180.png','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.indexOf(PFX)===0&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

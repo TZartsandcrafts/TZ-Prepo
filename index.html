@@ -42,13 +42,25 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.13';
+const P='prepo:',DB='prepo_kv',VER='0.1.14';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
 const kvGet=async k=>{const d=await idb();return new Promise(ok=>{const r=d.transaction('kv').objectStore('kv').get(k);r.onsuccess=()=>ok(r.result)})};
 const kvSet=async(k,v)=>{const d=await idb();return new Promise((ok,no)=>{const t=d.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=ok;t.onerror=()=>no(t.error)})};
-let S={recipes:[],cats:[]};const save=()=>kvSet('data',S);
+let S={recipes:[],cats:[]};const save=()=>{pruneCats();return kvSet('data',S)};
+/* 分类维护：没有食谱的分类自动删掉；mine=用户自己建/整理的分类（AI 分类时优先选用）；fix=用户手动纠正过的例子；map=“AI 分的A→用户改成B”的规则 */
+function pruneCats(){
+ const used=new Set(S.recipes.map(r=>r.category).filter(Boolean));
+ S.cats=[...S.cats.filter(c=>used.has(c)),...[...used].filter(c=>!S.cats.includes(c))];
+ if(Array.isArray(S.mine))S.mine=S.mine.filter(c=>used.has(c));
+ if(S.map)for(const k of Object.keys(S.map))if(!used.has(S.map[k])||used.has(k))delete S.map[k];
+ if(Array.isArray(S.fix))S.fix=S.fix.filter(f=>used.has(f.to))}
+function initCats(){
+ if(!Array.isArray(S.mine))S.mine=[...new Set(S.recipes.filter(r=>r.cv===2&&r.category&&r.category!=='未分类').map(r=>r.category))];
+ S.map=S.map||{};S.fix=S.fix||[];pruneCats()}
+const fixCat=c=>{c=(c||'').trim();for(let i=0;i<3&&S.map&&S.map[c];i++)c=S.map[c];return c};
+const catCtx=()=>({mine:S.mine||[],cats:newCats(),fixes:(S.fix||[]).map(f=>({name:f.name,ing:f.ing,from:f.from,to:f.to}))});
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const txt=v=>Array.isArray(v)?v.join('；'):(v||'');
 const norm=s=>(s||'').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');
@@ -122,7 +134,13 @@ function saveEdit(id){
  r.ingredients=ls('#e_i').map(l=>{const m=l.split(/[｜|]/);return{name:m[0].trim(),amount:m.slice(1).join('｜').trim()}}).filter(i=>i.name);
  r.steps=ls('#e_p');r.notes=v('#e_t');delete r.bak;DIRTY=false;WARN=false;save();back()}
 const mark=id=>{const r=S.recipes.find(x=>x.id===id);r.made=r.made?'':new Date().toLocaleDateString('zh-CN');save();draw(scrollY)};
-const setCat=(id,c)=>{if(!c)return;if(!S.cats.includes(c))S.cats.push(c);const rr=S.recipes.find(x=>x.id===id);rr.category=c;rr.cv=2;save();back();draw(cur.y)};
+const setCat=(id,c)=>{if(!c)return;const rr=S.recipes.find(x=>x.id===id),old=rr.category;if(!S.cats.includes(c))S.cats.push(c);
+ if(old!==c){
+  S.fix=(S.fix||[]).filter(f=>f.id!==id);S.fix.unshift({id,name:rr.name,ing:(rr.ingredients||[]).slice(0,6).map(i=>i.name||i),from:old||'',to:c});S.fix=S.fix.slice(0,30);
+  S.map=S.map||{};for(const k of Object.keys(S.map))if(S.map[k]===old)S.map[k]=c;
+  if(old&&old!=='未分类')S.map[old]=c;delete S.map[c];
+  S.mine=S.mine||[];if(!S.mine.includes(c))S.mine.push(c)}
+ rr.category=c;rr.cv=2;save();back();draw(cur.y)};
 async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),130000);let r,j;
  try{r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),signal:ac.signal});j=await r.json().catch(e=>{if(e.name==='AbortError')throw e;return{}})}
  catch(e){throw new Error(e.name==='AbortError'?'等待超过 130 秒，已中止，请稍后重试':'连不上 AI 服务（检查设置里的 Worker 地址，以及 Worker 的 ALLOW_ORIGIN）')}finally{clearTimeout(tm)}
@@ -155,11 +173,11 @@ async function extract(id){
    stop=wait(tag+'已上传 '+imgs.length+' 张，AI 正在'+(r?'合并':'识别'));
    if(r){await mergeInto(r,imgs);if(i===0&&snap){r.bak=snap;await save()}}
    else{
-    const j=await api('/extract',{images:imgs,cats:newCats(),single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
+    const j=await api('/extract',{images:imgs,...catCtx(),single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
     if(!L.length)throw new Error('AI 没有识别出食谱');
     for(const x of L){const d=findDup(x);
      if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
-     x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=(x.category||'未分类').trim();
+     x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=fixCat(x.category)||'未分类';
      if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);added.push(x.id);if(tot>1)r=x}
     await save();
     if(tot>1&&!r)break}
@@ -196,8 +214,8 @@ async function migrate(){
   let n=0;
   for(const b of chunk(todo,30)){
    say(`正在按新规则重新分类食谱：${n}/${todo.length}（请先别关闭页面）`);
-   const j=await api('/recat',{items:b.map(r=>({id:r.id,name:r.name,ingredients:(r.ingredients||[]).slice(0,12).map(i=>i.name||i)})),cats:newCats()});let k=0;
-   for(const x of (j.items||[]).filter(Boolean)){const r=S.recipes.find(y=>y.id===x.id),c=String(x.category||'').trim().slice(0,12);
+   const j=await api('/recat',{items:b.map(r=>({id:r.id,name:r.name,ingredients:(r.ingredients||[]).slice(0,12).map(i=>i.name||i)})),...catCtx()});let k=0;
+   for(const x of (j.items||[]).filter(Boolean)){const r=S.recipes.find(y=>y.id===x.id),c=fixCat(String(x.category||'').trim().slice(0,12));
     if(r&&c){r.category=c;r.cv=2;if(!S.cats.includes(c))S.cats.push(c);k++}}
    if(!k)throw new Error('AI 没有返回分类结果');
    await save();n+=b.length}
@@ -210,11 +228,11 @@ async function migrate(){
 async function exp(){const f=new File([JSON.stringify(S)],'prepo-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});
  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
-async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv};await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
+async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv,mine:d.mine,map:d.map,fix:d.fix};initCats();await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
 /* 手势：右划返回，左右划切换 */
 let tx,ty;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(e.target.closest('textarea,input'))return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6)return;
  if(V.swipe)V.swipe(dx>0?'R':'L',tx);else if(dx>0)back()},{passive:true});
-(async()=>{try{S=(await kvGet('data'))||S}catch(e){document.body.innerHTML='<p style="padding:20px">本机存储暂时打不开，请重新打开 App。</p>';return}draw();migrate();
+(async()=>{try{S=(await kvGet('data'))||S}catch(e){document.body.innerHTML='<p style="padding:20px">本机存储暂时打不开，请重新打开 App。</p>';return}initCats();save();draw();migrate();
  if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js')})();
 </script></body></html>
