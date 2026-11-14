@@ -27,10 +27,17 @@ textarea{min-height:140px}
 #dr div{width:78%;max-width:340px;height:100%;background:var(--bg);padding:calc(14px + env(safe-area-inset-top)) 14px;overflow:auto}
 .pro{height:8px;border-radius:4px;background:#E5E7EB;margin:6px 0 14px}.pro i{display:block;height:100%;border-radius:4px;background:var(--r)}
 .big{font-size:34px;font-weight:800;color:var(--r)}
+.stk{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.12)}.stk .bar{position:static}
+.top{padding:10px 16px}.two{display:flex;gap:10px;margin-bottom:10px}.two .btn{margin:0;min-height:48px;font-size:18px}.top input{display:block}
+.ing{list-style:none;padding:0;margin:.3em 0;border-top:1px solid rgba(128,128,128,.3)}
+.ing li{display:flex;align-items:baseline;gap:6px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}
+.ing li i{flex:1;min-width:16px;height:0;border-bottom:2px dotted var(--mu);opacity:.6}
+.ing li b{float:none;max-width:55%;text-align:right;flex:none}
+.mig{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:8;display:none;padding:12px 14px;border-radius:12px;background:var(--card);color:var(--tx);border:2px solid var(--o);font-size:16px;line-height:1.5;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 </style></head><body>
-<div id="app"></div><div id="dr"><div id="drc"></div></div>
+<div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.9';
+const P='prepo:',DB='prepo_kv',VER='0.1.10';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -46,7 +53,7 @@ const go=(v,a)=>{cur.y=scrollY;stack.push(cur);cur={v,a};draw()};
 const back=()=>{if(!stack.length)return;if(cur.v==='edit'&&DIRTY&&!WARN){WARN=true;const e=$('#st');if(e)e.textContent='有未保存的修改，再返回一次将放弃修改';return}DIRTY=false;WARN=false;cur=stack.pop();draw(cur.y)};
 function draw(y){V={};const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
 const hdr=(t,l='‹',r='')=>`<div class="bar"><button onclick="back()">${l}</button><span>${t}</span>${r}</div>`;
-const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2><ul>${(r.ingredients||[]).map(i=>`<li>${esc(i.name||i)}<b>${esc(i.amount||'')}</b></li>`).join('')}</ul><h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
+const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2><ul class=ing>${(r.ingredients||[]).map(i=>`<li><span>${esc(i.name||i)}</span>${i.amount?`<i></i><b>${esc(i.amount)}</b>`:''}</li>`).join('')}</ul><h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
 const SORTN={new:'按抓取时间·新到旧',old:'按抓取时间·旧到新',name:'按名称'};
 const PAL=['#FF6B1A','#E5262B','#FFB300','#D6336C','#7048E8','#1C7ED6','#0CA678','#74B816'];
 const catColor=c=>{const i=S.cats.indexOf(c);return i<0?'#9CA3AF':PAL[i%PAL.length]};
@@ -56,8 +63,8 @@ home(){
  const L=S.recipes.filter(r=>(!F.cat||r.category===F.cat)&&(!F.made||(F.made==='1')===!!r.made)&&(!F.q||norm(r.name+(r.ingredients||[]).map(i=>i.name)).includes(norm(F.q))));
  const SO={new:(a,b)=>(b.created||0)-(a.created||0),old:(a,b)=>(a.created||0)-(b.created||0),name:(a,b)=>String(a.name).localeCompare(String(b.name),'zh')};L.sort(SO[F.sort]||SO.new);
  V.swipe=(d,x)=>{if(d==='R'&&x<60)openDr()};
- return hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=pg><button class=btn onclick="FILES=[];go('add')">＋ 添加食谱（截图提取）</button><button class="btn y" onclick="go('ask')">我想做点什么 · 求建议</button>
- <input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"><p class=m>${F.cat||'全部'}${F.made?(F.made==='1'?' · 已做过':' · 未做过'):''} · ${SORTN[F.sort]||SORTN.new}：${L.length} 个（右划或点 ☰ 打开分类、排序）</p>${L.map(rowOf).join('')||'<p class=m>还没有食谱，先添加一个吧。</p>'}</div>`},
+ return '<div class=stk>'+hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=top><div class=two><button class=btn onclick="FILES=[];go('add')">＋ 添加食谱</button><button class="btn y" onclick="go('ask')">求建议</button></div>
+ <input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"></div></div><div class=pg><p class=m>${F.cat||'全部'}${F.made?(F.made==='1'?' · 已做过':' · 未做过'):''} · ${SORTN[F.sort]||SORTN.new}：${L.length} 个（右划或点 ☰ 打开分类、排序）</p>${L.map(rowOf).join('')||'<p class=m>还没有食谱，先添加一个吧。</p>'}</div>`},
 add(id){
  const r=id?S.recipes.find(x=>x.id===id):null;
  return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
@@ -89,7 +96,7 @@ edit(id){
  <h2>注意事项</h2><textarea id=e_t>${esc(txt(r.notes))}</textarea>
  <button class=btn onclick="saveEdit('${id}')">保存修改</button><p id=st class=m></p></div>`},
 set(){
- return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back()">保存</button><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
+ return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
 };
 function openDr(){const ck=x=>x?'✓ ':'',c=(k,n)=>`<button class=row style="border-left-color:${k?catColor(k):'var(--y)'}" data-c="${esc(k)}" onclick="F.cat=this.dataset.c;F.made='';draw()">${ck(F.cat===k&&!F.made)}${esc(k||'全部')} <small>${n}</small></button>`,
  s=(k,t)=>`<button class=row onclick="F.sort='${k}';draw()">${ck(F.sort===k)}${t}</button>`;
@@ -102,7 +109,7 @@ function saveEdit(id){
  r.ingredients=ls('#e_i').map(l=>{const m=l.split(/[｜|]/);return{name:m[0].trim(),amount:m.slice(1).join('｜').trim()}}).filter(i=>i.name);
  r.steps=ls('#e_p');r.notes=v('#e_t');delete r.bak;DIRTY=false;WARN=false;save();back()}
 const mark=id=>{const r=S.recipes.find(x=>x.id===id);r.made=r.made?'':new Date().toLocaleDateString('zh-CN');save();draw(scrollY)};
-const setCat=(id,c)=>{if(!c)return;if(!S.cats.includes(c))S.cats.push(c);S.recipes.find(x=>x.id===id).category=c;save();back();draw(cur.y)};
+const setCat=(id,c)=>{if(!c)return;if(!S.cats.includes(c))S.cats.push(c);const rr=S.recipes.find(x=>x.id===id);rr.category=c;rr.cv=2;save();back();draw(cur.y)};
 async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),130000);let r,j;
  try{r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),signal:ac.signal});j=await r.json().catch(e=>{if(e.name==='AbortError')throw e;return{}})}
  catch(e){throw new Error(e.name==='AbortError'?'等待超过 130 秒，已中止，请稍后重试':'连不上 AI 服务（检查设置里的 Worker 地址，以及 Worker 的 ALLOW_ORIGIN）')}finally{clearTimeout(tm)}
@@ -135,11 +142,11 @@ async function extract(id){
    stop=wait(tag+'已上传 '+imgs.length+' 张，AI 正在'+(r?'合并':'识别'));
    if(r){await mergeInto(r,imgs);if(i===0&&snap){r.bak=snap;await save()}}
    else{
-    const j=await api('/extract',{images:imgs,cats:S.cats,single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
+    const j=await api('/extract',{images:imgs,cats:newCats(),single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
     if(!L.length)throw new Error('AI 没有识别出食谱');
     for(const x of L){const d=findDup(x);
      if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
-     x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.category=(x.category||'未分类').trim();
+     x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=(x.category||'未分类').trim();
      if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);added.push(x.id);if(tot>1)r=x}
     await save();
     if(tot>1&&!r)break}
@@ -162,14 +169,39 @@ async function suggest(){
   if(!list.length)return busy(false,'库里没有合适的食谱，换个说法试试');
   const a=list.filter(s=>!s.r.made),b=list.filter(s=>s.r.made);SG={list:[...a,...b],i:0,madeN:b.length};go('sug')
  }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
+/* 分类新规则（v0.1.10）：首次启动自动把没按新规则分过的食谱交给 AI 重分一次；每个食谱带 cv:2 标记，中途失败下次从没分的继续 */
+const newCats=()=>[...new Set(S.recipes.filter(r=>r.cv===2&&r.category).map(r=>r.category))];
+let MIG=false;
+async function migrate(){
+ if(MIG||S.catv===2)return;
+ if(!S.recipes.length){S.catv=2;return save()}
+ const todo=S.recipes.filter(r=>r.cv!==2);
+ if(!todo.length){S.catv=2;return save()}
+ if(!WK())return;
+ MIG=true;const el=$('#mig'),say=(m,f)=>{el.textContent=m;el.style.display=m?'block':'none';el.dataset.f=f?'1':''};
+ try{
+  let n=0;
+  for(const b of chunk(todo,30)){
+   say(`正在按新规则重新分类食谱：${n}/${todo.length}（请先别关闭页面）`);
+   const j=await api('/recat',{items:b.map(r=>({id:r.id,name:r.name,ingredients:(r.ingredients||[]).slice(0,12).map(i=>i.name||i)})),cats:newCats()});let k=0;
+   for(const x of (j.items||[]).filter(Boolean)){const r=S.recipes.find(y=>y.id===x.id),c=String(x.category||'').trim().slice(0,12);
+    if(r&&c){r.category=c;r.cv=2;if(!S.cats.includes(c))S.cats.push(c);k++}}
+   if(!k)throw new Error('AI 没有返回分类结果');
+   await save();n+=b.length}
+  const left=S.recipes.filter(r=>r.cv!==2).length,used=new Set(S.recipes.map(r=>r.category));
+  S.cats=S.cats.filter(c=>used.has(c));if(!left)S.catv=2;await save();
+  say(left?`重新分类完成大部分，还有 ${left} 个没分好，下次打开会继续（点此关闭）`:`分类已更新：共 ${S.recipes.length} 个食谱，分为 ${S.cats.length} 类`,!!left);
+  if(!left)setTimeout(()=>{if(!el.dataset.f)say('')},5000);
+  if((cur.v==='home'||cur.v==='detail')&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)&&!$('#dr').classList.contains('on'))draw(scrollY)
+ }catch(e){say('重新分类没有完成：'+e.message+'（已完成的部分已保存，下次打开会继续；点此关闭）',true)}finally{MIG=false}}
 async function exp(){const f=new File([JSON.stringify(S)],'prepo-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});
  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
-async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[]};await save();stack=[];cur={v:'home'};draw()}catch(e){alert('备份文件不对')}}
+async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv};await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
 /* 手势：右划返回，左右划切换 */
 let tx,ty;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(e.target.closest('textarea,input'))return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6)return;
  if(V.swipe)V.swipe(dx>0?'R':'L',tx);else if(dx>0)back()},{passive:true});
-(async()=>{try{S=(await kvGet('data'))||S}catch(e){document.body.innerHTML='<p style="padding:20px">本机存储暂时打不开，请重新打开 App。</p>';return}draw();
+(async()=>{try{S=(await kvGet('data'))||S}catch(e){document.body.innerHTML='<p style="padding:20px">本机存储暂时打不开，请重新打开 App。</p>';return}draw();migrate();
  if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js')})();
 </script></body></html>
