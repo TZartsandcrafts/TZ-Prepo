@@ -28,7 +28,12 @@ textarea{min-height:140px}
 .pro{height:8px;border-radius:4px;background:#E5E7EB;margin:6px 0 14px}.pro i{display:block;height:100%;border-radius:4px;background:var(--r)}
 .big{font-size:34px;font-weight:800;color:var(--r)}
 .stk{position:sticky;top:0;z-index:5;background:var(--bg);box-shadow:0 2px 8px rgba(0,0,0,.12)}.stk .bar{position:static}
-.top{padding:10px 16px}.two{display:flex;gap:10px;margin-bottom:10px}.two .btn{margin:0;min-height:48px;font-size:18px}.top input{display:block}
+.top{padding:10px 16px}.top input{display:block}.hp{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--card);border-top:1px solid rgba(128,128,128,.3);padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 8px rgba(0,0,0,.08)}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border:0;background:none;color:var(--tx);font:inherit;font-size:15px;font-weight:700}
+.nav svg{width:34px;height:34px;stroke:var(--o);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.hn .mig{bottom:calc(96px + env(safe-area-inset-bottom))}
+.cur{margin:0 0 6px;border:2px solid var(--o);border-radius:12px;padding:10px 14px;background:var(--card);font-size:18px;line-height:1.5}.cur b{color:var(--o)}.cur span{color:var(--mu);font-size:15px}
 .ing{list-style:none;padding:0;margin:.3em 0;border-top:1px solid rgba(128,128,128,.3)}
 .ing li{display:flex;align-items:baseline;gap:6px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}
 .ing li i{flex:1;min-width:16px;height:0;border-bottom:2px dotted var(--mu);opacity:.6}
@@ -37,7 +42,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.10';
+const P='prepo:',DB='prepo_kv',VER='0.1.11';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -51,20 +56,22 @@ const norm=s=>(s||'').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');
 let stack=[],cur={v:'home'},V={},F={cat:'',made:'',q:'',sort:'new'},ASK='',FILES=[],SG=null,DIRTY=false,WARN=false;
 const go=(v,a)=>{cur.y=scrollY;stack.push(cur);cur={v,a};draw()};
 const back=()=>{if(!stack.length)return;if(cur.v==='edit'&&DIRTY&&!WARN){WARN=true;const e=$('#st');if(e)e.textContent='有未保存的修改，再返回一次将放弃修改';return}DIRTY=false;WARN=false;cur=stack.pop();draw(cur.y)};
-function draw(y){V={};const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
+function draw(y){V={};document.body.classList.toggle('hn',cur.v==='home');const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
 const hdr=(t,l='‹',r='')=>`<div class="bar"><button onclick="back()">${l}</button><span>${t}</span>${r}</div>`;
 const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2><ul class=ing>${(r.ingredients||[]).map(i=>`<li><span>${esc(i.name||i)}</span>${i.amount?`<i></i><b>${esc(i.amount)}</b>`:''}</li>`).join('')}</ul><h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
 const SORTN={new:'按抓取时间·新到旧',old:'按抓取时间·旧到新',name:'按名称'};
 const PAL=['#FF6B1A','#E5262B','#FFB300','#D6336C','#7048E8','#1C7ED6','#0CA678','#74B816'];
 const catColor=c=>{const i=S.cats.indexOf(c);return i<0?'#9CA3AF':PAL[i%PAL.length]};
 const rowOf=r=>`<button class=row style="border-left-color:${catColor(r.category)}" onclick="go('detail','${r.id}')">${esc(r.name)} ${r.made?'<span class=ok>✓已做过</span>':''}<small>${esc([r.category,r.author].filter(Boolean).join(' · '))}</small></button>`;
+const filt=()=>{
+ const L=S.recipes.filter(r=>(!F.cat||r.category===F.cat)&&(!F.made||(F.made==='1')===!!r.made)&&(!F.q||norm(r.name+(r.ingredients||[]).map(i=>i.name)).includes(norm(F.q))));
+ const SO={new:(a,b)=>(b.created||0)-(a.created||0),old:(a,b)=>(a.created||0)-(b.created||0),name:(a,b)=>String(a.name).localeCompare(String(b.name),'zh')};L.sort(SO[F.sort]||SO.new);return L};
+const NAV=`<div class=nav><button onclick="go('ask')"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>找食谱</button><button onclick="FILES=[];go('add')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>加食谱</button></div>`;
 const VIEWS={
 home(){
- const L=S.recipes.filter(r=>(!F.cat||r.category===F.cat)&&(!F.made||(F.made==='1')===!!r.made)&&(!F.q||norm(r.name+(r.ingredients||[]).map(i=>i.name)).includes(norm(F.q))));
- const SO={new:(a,b)=>(b.created||0)-(a.created||0),old:(a,b)=>(a.created||0)-(b.created||0),name:(a,b)=>String(a.name).localeCompare(String(b.name),'zh')};L.sort(SO[F.sort]||SO.new);
+ const L=filt();
  V.swipe=(d,x)=>{if(d==='R'&&x<60)openDr()};
- return '<div class=stk>'+hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=top><div class=two><button class=btn onclick="FILES=[];go('add')">＋ 添加食谱</button><button class="btn y" onclick="go('ask')">求建议</button></div>
- <input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"></div></div><div class=pg><p class=m>${F.cat||'全部'}${F.made?(F.made==='1'?' · 已做过':' · 未做过'):''} · ${SORTN[F.sort]||SORTN.new}：${L.length} 个（右划或点 ☰ 打开分类、排序）</p>${L.map(rowOf).join('')||'<p class=m>还没有食谱，先添加一个吧。</p>'}</div>`},
+ return '<div class=stk>'+hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=top><input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"></div></div><div class="pg hp">${L.map(rowOf).join('')||`<p class=m>${S.recipes.length?'没有符合条件的食谱。':'还没有食谱，点下面的“加食谱”添加一个吧。'}</p>`}</div>${NAV}`},
 add(id){
  const r=id?S.recipes.find(x=>x.id===id):null;
  return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
@@ -100,7 +107,8 @@ set(){
 };
 function openDr(){const ck=x=>x?'✓ ':'',c=(k,n)=>`<button class=row style="border-left-color:${k?catColor(k):'var(--y)'}" data-c="${esc(k)}" onclick="F.cat=this.dataset.c;F.made='';draw()">${ck(F.cat===k&&!F.made)}${esc(k||'全部')} <small>${n}</small></button>`,
  s=(k,t)=>`<button class=row onclick="F.sort='${k}';draw()">${ck(F.sort===k)}${t}</button>`;
- $('#drc').innerHTML=`<h2>分类</h2>`+c('',S.recipes.length)+S.cats.map(k=>c(k,S.recipes.filter(r=>r.category===k).length)).join('')+`<h2>状态</h2><button class=row onclick="F.cat='';F.made='1';draw()">${ck(F.made==='1')}已做过</button><button class=row onclick="F.cat='';F.made='0';draw()">${ck(F.made==='0')}未做过</button><h2>排序</h2>`+s('new','抓取时间 · 新到旧')+s('old','抓取时间 · 旧到新')+s('name','名称');$('#dr').classList.add('on')}
+ const L=filt(),ft=[F.cat||'全部',F.made&&(F.made==='1'?'已做过':'未做过'),F.q&&'搜索“'+F.q+'”'].filter(Boolean);
+ $('#drc').innerHTML=`<p class=cur><b>当前：${esc(ft.join(' · '))}</b><br><span>${SORTN[F.sort]||SORTN.new} · 共 ${L.length} 个</span></p><h2>分类</h2>`+c('',S.recipes.length)+S.cats.map(k=>c(k,S.recipes.filter(r=>r.category===k).length)).join('')+`<h2>状态</h2><button class=row onclick="F.cat='';F.made='1';draw()">${ck(F.made==='1')}已做过</button><button class=row onclick="F.cat='';F.made='0';draw()">${ck(F.made==='0')}未做过</button><h2>排序</h2>`+s('new','抓取时间 · 新到旧')+s('old','抓取时间 · 旧到新')+s('name','名称');$('#dr').classList.add('on')}
 $('#dr').onclick=e=>{if(e.target.id==='dr')$('#dr').classList.remove('on')};
 function saveEdit(id){
  const r=S.recipes.find(x=>x.id===id),v=s=>$(s).value.trim(),ls=s=>v(s).split('\n').map(x=>x.trim()).filter(Boolean);
