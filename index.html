@@ -30,7 +30,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.8';
+const P='prepo:',DB='prepo_kv',VER='0.1.9';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -117,7 +117,7 @@ const pack=async f=>{const a=await Promise.all(f.map(shrink));if(a.some(x=>!x))t
 const slim=r=>({name:r.name,author:r.author,source:r.source,rating:r.rating,ingredients:r.ingredients,steps:r.steps,notes:r.notes});
 async function mergeInto(r,imgs){
  const j=await api('/merge',{recipe:slim(r),images:imgs}),n=j.recipe;
- if(!n||!n.name)throw new Error('AI 没有返回合并结果');
+ if(!n)throw new Error('AI 没有返回合并结果');
  const sz=x=>(x.ingredients||[]).length+(x.steps||[]).length;
  if(sz(n)<sz(r)*0.8)throw new Error('合并结果比原来少了很多内容，已放弃这一批，原食谱没有改动');
  Object.assign(r,{name:n.name||r.name,author:r.author||n.author||'',source:r.source||n.source||'',rating:r.rating||n.rating||'',ingredients:n.ingredients||[],steps:n.steps||[],notes:txt(n.notes)||txt(r.notes)});
