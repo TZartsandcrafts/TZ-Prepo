@@ -30,7 +30,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.7';
+const P='prepo:',DB='prepo_kv',VER='0.1.8';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -58,16 +58,19 @@ home(){
  V.swipe=(d,x)=>{if(d==='R'&&x<60)openDr()};
  return hdr('有谱 Prepo','☰','<button onclick="go(\'set\')">⚙</button>').replace('back()','openDr()')+`<div class=pg><button class=btn onclick="FILES=[];go('add')">＋ 添加食谱（截图提取）</button><button class="btn y" onclick="go('ask')">我想做点什么 · 求建议</button>
  <input placeholder="搜索名称或材料" value="${esc(F.q)}" onchange="F.q=this.value;draw()"><p class=m>${F.cat||'全部'}${F.made?(F.made==='1'?' · 已做过':' · 未做过'):''} · ${SORTN[F.sort]||SORTN.new}：${L.length} 个（右划或点 ☰ 打开分类、排序）</p>${L.map(rowOf).join('')||'<p class=m>还没有食谱，先添加一个吧。</p>'}</div>`},
-add(){
- return hdr('添加食谱')+`<div class=pg><p class=m>选择食谱截图（可多张，最多 10 张）。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p><input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,10);$('#fc').textContent='已选 '+FILES.length+' 张'"><p id=fc class=m>已选 ${FILES.length} 张</p><button class=btn id=go onclick="extract()">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
+add(id){
+ const r=id?S.recipes.find(x=>x.id===id):null;
+ return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
 result(a){
  const n=a.added.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),d=a.dups.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean);
  return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>重复 ${d.length} 个，未重复添加</h2>${d.length?'<p class=m>以下食谱已有记录，已提醒你；它们会在建议时优先考虑。</p>':''}${d.map(rowOf).join('')}<button class=btn onclick="stack=[];cur={v:\'home\'};draw()">回到食谱库</button></div>`},
 detail(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('食谱')+'<div class=pg>食谱不存在</div>';
- return hdr('食谱')+`<div class=pg>${body(r)}<button class="btn g" onclick="go('edit','${id}')">编辑食谱文字 ›</button>
+ return hdr('食谱')+`<div class=pg>${body(r)}<button class="btn y" onclick="FILES=[];go('add','${id}')">继续添加截图 ›</button>
+ <button class="btn g" onclick="go('edit','${id}')">编辑食谱文字 ›</button>
  <button class="btn g" onclick="go('pick','${id}')">分类：${esc(r.category||'未分类')} ›</button>
  <button class="btn ${r.made?'g':'y'}" onclick="mark('${id}')">${r.made?'✓ 已做过（'+esc(r.made)+'）点此取消':'标记为已做过'}</button>
+ ${r.bak?`<button class="btn g" onclick="if(this.dataset.s){undoMerge('${id}')}else{this.dataset.s=1;this.textContent='再点一次确认撤销'}">撤销上一次续传（恢复到续传前）</button>`:''}
  <button class="btn r" id=dl onclick="if(this.dataset.s){S.recipes=S.recipes.filter(x=>x.id!=='${id}');save();back()}else{this.dataset.s=1;this.textContent='再点一次确认删除'}">删除这个食谱</button></div>`},
 pick(id){
  return hdr('选择分类')+`<div class=pg>${S.cats.map(c=>`<button class=row style="border-left-color:${catColor(c)}" onclick="setCat('${id}',this.dataset.c)" data-c="${esc(c)}">${esc(c)}</button>`).join('')}<input id=nc placeholder="新分类名称"><button class=btn onclick="setCat('${id}',$('#nc').value.trim())">使用新分类</button></div>`},
@@ -97,7 +100,7 @@ function saveEdit(id){
  if(!v('#e_n'))return $('#st').textContent='名称不能为空';
  r.name=v('#e_n');r.author=v('#e_a');r.source=v('#e_s');r.rating=v('#e_r');
  r.ingredients=ls('#e_i').map(l=>{const m=l.split(/[｜|]/);return{name:m[0].trim(),amount:m.slice(1).join('｜').trim()}}).filter(i=>i.name);
- r.steps=ls('#e_p');r.notes=v('#e_t');DIRTY=false;WARN=false;save();back()}
+ r.steps=ls('#e_p');r.notes=v('#e_t');delete r.bak;DIRTY=false;WARN=false;save();back()}
 const mark=id=>{const r=S.recipes.find(x=>x.id===id);r.made=r.made?'':new Date().toLocaleDateString('zh-CN');save();draw(scrollY)};
 const setCat=(id,c)=>{if(!c)return;if(!S.cats.includes(c))S.cats.push(c);S.recipes.find(x=>x.id===id).category=c;save();back();draw(cur.y)};
 async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),130000);let r,j;
@@ -108,20 +111,47 @@ const shrink=f=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.
 function findDup(r){const n=norm(r.name),a=new Set((r.ingredients||[]).map(i=>norm(i.name||i)));for(const x of S.recipes){const m=norm(x.name),b=new Set((x.ingredients||[]).map(i=>norm(i.name||i)));let k=0;a.forEach(t=>b.has(t)&&k++);const j=k/Math.max(1,a.size+b.size-k);if(n&&m&&(m===n||((m.includes(n)||n.includes(m))&&j>.5)||j>.85))return x}}
 const wait=m=>{const t0=Date.now(),f=()=>{const e=$('#st');if(e)e.textContent=m+'，已等待 '+Math.round((Date.now()-t0)/1000)+' 秒…'};f();const id=setInterval(f,1000);return()=>clearInterval(id)};
 const busy=(on,m)=>{$('#go').disabled=on;$('#st').textContent=m||''};
-async function extract(){
+const fcText=()=>FILES.length?`已选 ${FILES.length} 张，共 ${Math.ceil(FILES.length/10)} 批`:'还没有选择截图';
+const chunk=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
+const pack=async f=>{const a=await Promise.all(f.map(shrink));if(a.some(x=>!x))throw new Error('有图片无法读取（格式不支持？），请换成 PNG 或 JPG');return a};
+const slim=r=>({name:r.name,author:r.author,source:r.source,rating:r.rating,ingredients:r.ingredients,steps:r.steps,notes:r.notes});
+async function mergeInto(r,imgs){
+ const j=await api('/merge',{recipe:slim(r),images:imgs}),n=j.recipe;
+ if(!n||!n.name)throw new Error('AI 没有返回合并结果');
+ const sz=x=>(x.ingredients||[]).length+(x.steps||[]).length;
+ if(sz(n)<sz(r)*0.8)throw new Error('合并结果比原来少了很多内容，已放弃这一批，原食谱没有改动');
+ Object.assign(r,{name:n.name||r.name,author:r.author||n.author||'',source:r.source||n.source||'',rating:r.rating||n.rating||'',ingredients:n.ingredients||[],steps:n.steps||[],notes:txt(n.notes)||txt(r.notes)});
+ await save()}
+function undoMerge(id){const r=S.recipes.find(x=>x.id===id);if(!r||!r.bak)return;Object.assign(r,r.bak);delete r.bak;save();draw(scrollY)}
+async function extract(id){
  if(!FILES.length)return busy(false,'请先选择截图');
- let stop=()=>{};
- try{busy(true,'正在压缩图片…');
-  const imgs=(await Promise.all(FILES.map(shrink))).filter(Boolean);
-  if(imgs.length<FILES.length)throw new Error('有 '+(FILES.length-imgs.length)+' 张图片无法读取（格式不支持？），请换成 PNG 或 JPG');
-  stop=wait('已上传 '+imgs.length+' 张，AI 正在识别');
-  const j=await api('/extract',{images:imgs,cats:S.cats}),added=[],dups=[];
-  for(const r of j.recipes||[]){if(!r.name)continue;const d=findDup(r);
-   if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
-   r.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);r.saves=1;r.made='';r.created=Date.now();r.category=(r.category||'未分类').trim();
-   if(!S.cats.includes(r.category))S.cats.push(r.category);S.recipes.push(r);added.push(r.id)}
-  await save();FILES=[];cur={v:'result',a:{added,dups}};draw()
- }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
+ const bs=chunk(FILES,10),tot=bs.length;let stop=()=>{},r=id?S.recipes.find(x=>x.id===id):null,done=0,i=0;
+ if(id&&!r)return busy(false,'这个食谱已经不存在');
+ const snap=r?slim(r):null,added=[],dups=[];
+ try{
+  for(i=0;i<tot;i++){
+   const tag=tot>1?`第 ${i+1}/${tot} 批 · `:'';
+   busy(true,tag+'正在压缩图片…');const imgs=await pack(bs[i]);
+   stop=wait(tag+'已上传 '+imgs.length+' 张，AI 正在'+(r?'合并':'识别'));
+   if(r){await mergeInto(r,imgs);if(i===0&&snap){r.bak=snap;await save()}}
+   else{
+    const j=await api('/extract',{images:imgs,cats:S.cats,single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
+    if(!L.length)throw new Error('AI 没有识别出食谱');
+    for(const x of L){const d=findDup(x);
+     if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
+     x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.category=(x.category||'未分类').trim();
+     if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);added.push(x.id);if(tot>1)r=x}
+    await save();
+    if(tot>1&&!r)break}
+   stop();done++}
+  FILES=[];
+  if(id)back();else{cur={v:'result',a:{added,dups}};draw()}
+ }catch(e){
+  let m='失败：'+(tot>1?`第 ${i+1}/${tot} 批：`:'')+e.message;
+  if(done>0&&r){
+   if(id){FILES=bs.slice(done).flat();m+=`（前 ${done} 批已保存，再点上面的按钮可以从这一批继续）`;const fc=$('#fc');if(fc)fc.textContent=fcText()}
+   else{FILES=[];m+=`（前 ${done} 批已保存成新食谱「${r.name}」，可以在食谱库里打开它，点“继续添加截图”补上剩下的）`}}
+  busy(false,m)}finally{stop()}}
 async function suggest(){
  const need=$('#need').value.trim();if(!need)return busy(false,'请先写下你的需求');
  if(!S.recipes.length)return busy(false,'食谱库还是空的');
