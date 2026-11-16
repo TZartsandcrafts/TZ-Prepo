@@ -33,6 +33,11 @@ textarea{min-height:140px}
 .nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border:0;background:none;color:var(--tx);font:inherit;font-size:15px;font-weight:700}
 .nav svg{width:34px;height:34px;stroke:var(--o);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .hn .mig{bottom:calc(96px + env(safe-area-inset-bottom))}
+.btn:disabled{opacity:.45}h3{font-size:18px;margin:1.1em 0 .2em}
+.cbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid rgba(128,128,128,.3);padding:8px 16px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px rgba(0,0,0,.08)}.cbar .btn{margin:6px 0 0}.cbar p{margin:0;min-height:1.4em;font-size:15px}
+.cp{padding-bottom:calc(140px + env(safe-area-inset-bottom))}.row.sel{box-shadow:inset 0 0 0 2px var(--o)}.hc .mig{bottom:calc(140px + env(safe-area-inset-bottom))}
+.pc{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}.pc .pr{display:flex;align-items:baseline;gap:6px}.pc .pr i{flex:1;min-width:16px;height:0;border-bottom:2px dotted var(--mu);opacity:.6}.pc .pr b{color:var(--mu);font-weight:600;text-align:right;max-width:60%}
+.pb{height:8px;border-radius:4px;background:#E5E7EB;margin:6px 0 2px}.pb i{display:block;height:100%;border-radius:4px;background:var(--o)}.pc small{color:var(--mu);font-size:15px}
 .cur{margin:0 0 6px;border:2px solid var(--o);border-radius:12px;padding:10px 14px;background:var(--card);font-size:18px;line-height:1.5}.cur b{color:var(--o)}.cur span{color:var(--mu);font-size:15px}
 .ing{list-style:none;padding:0;margin:.3em 0;border-top:1px solid rgba(128,128,128,.3)}
 .ing li{display:flex;align-items:baseline;gap:6px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}
@@ -42,7 +47,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.14';
+const P='prepo:',DB='prepo_kv',VER='0.1.15';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -58,7 +63,7 @@ function pruneCats(){
  if(Array.isArray(S.fix))S.fix=S.fix.filter(f=>used.has(f.to))}
 function initCats(){
  if(!Array.isArray(S.mine))S.mine=[...new Set(S.recipes.filter(r=>r.cv===2&&r.category&&r.category!=='未分类').map(r=>r.category))];
- S.map=S.map||{};S.fix=S.fix||[];pruneCats()}
+ S.map=S.map||{};S.fix=S.fix||[];S.cmpHide=S.cmpHide||[];pruneCats()}
 const fixCat=c=>{c=(c||'').trim();for(let i=0;i<3&&S.map&&S.map[c];i++)c=S.map[c];return c};
 const catCtx=()=>({mine:S.mine||[],cats:newCats(),fixes:(S.fix||[]).map(f=>({name:f.name,ing:f.ing,from:f.from,to:f.to}))});
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -68,7 +73,7 @@ const norm=s=>(s||'').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');
 let stack=[],cur={v:'home'},V={},F={cat:'',made:'',q:'',sort:'new'},ASK='',FILES=[],SG=null,DIRTY=false,WARN=false;
 const go=(v,a)=>{cur.y=scrollY;stack.push(cur);cur={v,a};draw()};
 const back=()=>{if(!stack.length)return;if(cur.v==='edit'&&DIRTY&&!WARN){WARN=true;const e=$('#st');if(e)e.textContent='有未保存的修改，再返回一次将放弃修改';return}DIRTY=false;WARN=false;cur=stack.pop();draw(cur.y)};
-function draw(y){V={};document.body.classList.toggle('hn',cur.v==='home');const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
+function draw(y){V={};document.body.classList.toggle('hn',cur.v==='home');document.body.classList.toggle('hc',cur.v==='cmp');const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
 const hdr=(t,l='‹',r='')=>`<div class="bar"><button onclick="back()">${l}</button><span>${t}</span>${r}</div>`;
 const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2><ul class=ing>${(r.ingredients||[]).map(i=>`<li><span>${esc(i.name||i)}</span>${i.amount?`<i></i><b>${esc(i.amount)}</b>`:''}</li>`).join('')}</ul><h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
 const SORTN={new:'按抓取时间·新到旧',old:'按抓取时间·旧到新',name:'按名称'};
@@ -78,7 +83,32 @@ const rowOf=r=>`<button class=row style="border-left-color:${catColor(r.category
 const filt=()=>{
  const L=S.recipes.filter(r=>(!F.cat||r.category===F.cat)&&(!F.made||(F.made==='1')===!!r.made)&&(!F.q||norm(r.name+(r.ingredients||[]).map(i=>i.name)).includes(norm(F.q))));
  const SO={new:(a,b)=>(b.created||0)-(a.created||0),old:(a,b)=>(a.created||0)-(b.created||0),name:(a,b)=>String(a.name).localeCompare(String(b.name),'zh')};L.sort(SO[F.sort]||SO.new);return L};
-const NAV=`<div class=nav><button onclick="go('ask')"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>找食谱</button><button onclick="FILES=[];go('add')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>加食谱</button></div>`;
+const NAV=`<div class=nav><button onclick="CMP=[];CQ='';go('cmp')"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>对比</button><button onclick="go('ask')"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>找食谱</button><button onclick="FILES=[];go('add')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>加食谱</button></div>`;
+/* 食谱对比（v0.1.15）：CMP=已选食谱 id，CQ=搜索词，CR=最近一次对比报告；S.cmpHide=设置里隐藏的报告项 */
+let CMP=[],CQ='',CR=null;
+const CMPK=[['sum','总结'],['var','材料品种'],['in','各食谱内的材料比例'],['x','同种材料跨食谱比例'],['oth','其它参考比例']];
+const cmpTog=id=>{const i=CMP.indexOf(id);if(i>=0)CMP.splice(i,1);else if(CMP.length>=3){const e=$('#st');if(e)e.textContent='最多选 3 个，请先取消一个';return}else CMP.push(id);draw(scrollY)};
+const cmpHide=k=>{S.cmpHide=S.cmpHide||[];const i=S.cmpHide.indexOf(k);if(i>=0)S.cmpHide.splice(i,1);else S.cmpHide.push(k);save();draw(scrollY)};
+function repHtml(d,names){
+ const H=S.cmpHide||[],sh=k=>!H.includes(k),A=x=>Array.isArray(x)?x:[],N=x=>typeof x==='number'&&isFinite(x)?x:null,e=esc,P=x=>Math.max(0,Math.min(100,N(x)||0));
+ const gs=(x,est,amt)=>N(x)===null?'':((est||!/克|\d\s*g\b/i.test(amt||''))?`${est?'≈':''}${Math.round(x*10)/10} g`:'');
+ const line=(n,amt,g,pct,rel,bar)=>`<div class=pc><div class=pr><span>${e(n)}</span><i></i><b>${e([amt,g].filter(Boolean).join(' '))}</b></div>${bar&&N(pct)!==null?`<div class=pb><i style="width:${P(pct)}%"></i></div>`:''}${(N(pct)!==null||N(rel)!==null)?`<small>${[N(pct)!==null?'占 '+N(pct)+'%':'',N(rel)!==null?'相对主料 '+N(rel)+'%':''].filter(Boolean).join(' · ')}</small>`:''}</div>`;
+ let o=`<p class=m>对比：${names.map(e).join(' · ')}</p><p class=m>用量按常用换算估算成克，带“≈”的是估算值，仅供参考。</p>`,n=0;
+ if(sh('sum')&&d.summary){n++;o+=`<h2>总结</h2><p>${e(d.summary)}</p>`}
+ if(sh('var')){n++;const v=d.variety||{},c=A(v.common),on=A(v.only);o+=`<h2>材料品种</h2>`+(c.length?`<h3>共有材料</h3><ul class=ing>${c.map(x=>`<li><span>${e(x.name)}</span><i></i><b>${e(A(x.in).join('、'))}</b></li>`).join('')}</ul>`:'<p class=m>没有各食谱共有的材料。</p>')+on.map(x=>`<p><b>仅「${e(x.recipe)}」有：</b>${e(A(x.items).join('、')||'无')}</p>`).join('')}
+ if(sh('in')){n++;o+=`<h2>各食谱内的材料比例</h2>`+(A(d.within).map(w=>`<h3>${e(w.recipe)}</h3>${w.basis?`<p class=m>${e(w.basis)}</p>`:''}${A(w.items).map(i=>line(i.name,i.amount,gs(i.grams,i.est,i.amount),i.percent,i.rel,1)).join('')}`).join('')||'<p class=m>没有可计算的内容。</p>')}
+ if(sh('x')){n++;o+=`<h2>同种材料跨食谱比例</h2>`+(A(d.across).map(a=>`<h3>${e(a.ingredient)}</h3>${A(a.values).map(v=>line(v.recipe,v.amount,gs(v.grams,1,v.amount),v.percent,null,1)).join('')}${a.ratio?`<p class=ok>${e(a.ratio)}</p>`:''}${a.note?`<p class=m>${e(a.note)}</p>`:''}`).join('')||'<p class=m>没有在多个食谱里都出现的材料。</p>')}
+ if(sh('oth')){n++;o+=`<h2>其它参考比例</h2>`+(A(d.other).map(t=>`<h3>${e(t.title)}</h3><ul class=ing>${A(t.values).map(v=>`<li><span>${e(v.recipe)}</span><i></i><b>${e(v.value)}</b></li>`).join('')}</ul>${t.note?`<p class=m>${e(t.note)}</p>`:''}`).join('')||'<p class=m>没有可计算的其它比例。</p>')}
+ return n?o:'<p class=m>对比报告的所有项都被隐藏了，可以在“设置 → 对比报告显示项”里打开。</p>'}
+async function compare(){
+ if(CMP.length<2)return;
+ const rs=CMP.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),seen={},names=rs.map(r=>{let n=r.name||'未命名';if(seen[n]){seen[n]++;n+=`（${seen[n]}）`}else seen[n]=1;return n});
+ let stop=()=>{};
+ try{busy(true,'正在发送…');stop=wait('AI 正在对比');
+  const j=await api('/compare',{recipes:rs.map((r,i)=>({name:names[i],ingredients:(r.ingredients||[]).map(x=>({name:x.name||x,amount:x.amount||''}))}))});
+  if(!j.report||typeof j.report!=='object')throw new Error('AI 没有返回对比结果');
+  CR={names,d:j.report};go('rep')
+ }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
 const VIEWS={
 home(){
  const L=filt();
@@ -114,8 +144,14 @@ edit(id){
  <h2>步骤</h2><p class=m>每行一步，不用写序号</p><textarea id=e_p style="min-height:260px">${esc((r.steps||[]).join('\n'))}</textarea>
  <h2>注意事项</h2><textarea id=e_t>${esc(txt(r.notes))}</textarea>
  <button class=btn onclick="saveEdit('${id}')">保存修改</button><p id=st class=m></p></div>`},
+cmp(){
+ const L=S.recipes.filter(r=>!CQ||norm(r.name+(r.ingredients||[]).map(i=>i.name||i).join('')).includes(norm(CQ))).sort((a,b)=>(b.created||0)-(a.created||0));
+ return '<div class=stk>'+hdr('食谱对比')+`<div class=top><input placeholder="搜索名称或材料" value="${esc(CQ)}" onchange="CQ=this.value;draw()"></div></div><div class="pg cp">${L.map(r=>{const on=CMP.includes(r.id);return `<button class="row${on?' sel':''}" style="border-left-color:${catColor(r.category)}" onclick="cmpTog('${r.id}')">${on?'☑':'☐'} ${esc(r.name)}<small>${esc(r.category||'未分类')} · ${(r.ingredients||[]).length} 种材料</small></button>`}).join('')||'<p class=m>没有符合条件的食谱。</p>'}</div><div class=cbar><p id=st class=m>${CMP.length<2?'请选 2 到 3 个食谱':''}</p><button class=btn id=go onclick="compare()" ${CMP.length<2?'disabled':''}>开始对比（${CMP.length}/3）</button></div>`},
+rep(){
+ if(!CR)return hdr('对比报告')+'<div class=pg>没有报告</div>';
+ return hdr('对比报告')+`<div class=pg>${repHtml(CR.d,CR.names)}</div>`},
 set(){
- return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
+ return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>对比报告显示项</h2>${CMPK.map(([k,t])=>`<button class=row onclick="cmpHide('${k}')">${(S.cmpHide||[]).includes(k)?'☐':'☑'} ${t}</button>`).join('')}<p class=m>取消勾选的项，在对比报告里不显示。</p><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
 };
 function openDr(){const ck=x=>x?'✓ ':'',c=(k,n)=>`<button class=row style="border-left-color:${k?catColor(k):'var(--y)'}" data-c="${esc(k)}" onclick="F.cat=this.dataset.c;F.made='';draw()">${ck(F.cat===k&&!F.made)}${esc(k||'全部')} <small>${n}</small></button>`,
  s=(k,t)=>`<button class=row onclick="F.sort='${k}';draw()">${ck(F.sort===k)}${t}</button>`;
@@ -228,7 +264,7 @@ async function migrate(){
 async function exp(){const f=new File([JSON.stringify(S)],'prepo-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});
  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
-async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv,mine:d.mine,map:d.map,fix:d.fix};initCats();await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
+async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv,mine:d.mine,map:d.map,fix:d.fix,cmpHide:d.cmpHide};initCats();await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
 /* 手势：右划返回，左右划切换 */
 let tx,ty;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(e.target.closest('textarea,input'))return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6)return;
