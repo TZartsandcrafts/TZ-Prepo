@@ -39,6 +39,17 @@ textarea{min-height:140px}
 .ing li span small{display:block;color:var(--mu);font-size:14px;font-weight:400}h3{font-size:18px;margin:1.1em 0 .2em}
 .cbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid rgba(128,128,128,.3);padding:8px 16px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px rgba(0,0,0,.08)}.cbar .btn{margin:6px 0 0}.cbar p{margin:0;min-height:1.4em;font-size:15px}
 .cp{padding-bottom:calc(140px + env(safe-area-inset-bottom))}.row.sel{box-shadow:inset 0 0 0 2px var(--o)}.hc .mig{bottom:calc(140px + env(safe-area-inset-bottom))}
+.seg.s{margin:6px 0}.seg.s button{min-height:36px;font-size:15px;border-width:1.5px}
+h3 small{font-size:14px;color:var(--mu);font-weight:400}
+.gi{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}.gi>span{display:block;font-weight:700}.gi small{display:block;color:var(--mu);font-weight:400;font-size:14px}
+.tb tr.gt td{position:static;box-shadow:none;background:var(--bg);color:var(--o);font-weight:700;text-align:left}
+.tw{overflow-x:auto;margin:8px 0;-webkit-overflow-scrolling:touch}
+.tb{border-collapse:collapse;width:100%;font-size:15px}
+.tb th,.tb td{border:1px solid rgba(128,128,128,.35);padding:8px 6px;text-align:center;vertical-align:middle;min-width:76px;line-height:1.35;background:var(--card)}
+.tb th{border-bottom:2px solid var(--o);font-weight:700}
+.tb th:first-child,.tb td:first-child{position:sticky;left:0;z-index:1;text-align:left;min-width:86px;font-weight:700;box-shadow:1px 0 0 rgba(128,128,128,.35)}
+.tb td small{display:block;color:var(--mu);font-weight:400;font-size:13px}.tb td small.rel{color:var(--o)}
+.tb tr.sum td{font-weight:700;border-top:2px solid rgba(128,128,128,.5)}
 .pc{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}.pc .pr{display:flex;align-items:baseline;gap:6px}.pc .pr i{flex:1;min-width:16px;height:0;border-bottom:2px dotted var(--mu);opacity:.6}.pc .pr b{color:var(--mu);font-weight:600;text-align:right;max-width:60%}
 .pb{height:8px;border-radius:4px;background:#E5E7EB;margin:6px 0 2px}.pb i{display:block;height:100%;border-radius:4px;background:var(--o)}.pc small{color:var(--mu);font-size:15px}
 .cur{margin:0 0 6px;border:2px solid var(--o);border-radius:12px;padding:10px 14px;background:var(--card);font-size:18px;line-height:1.5}.cur b{color:var(--o)}.cur span{color:var(--mu);font-size:15px}
@@ -50,7 +61,7 @@ textarea{min-height:140px}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.17';
+const P='prepo:',DB='prepo_kv',VER='0.1.19';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -78,7 +89,7 @@ const go=(v,a)=>{cur.y=scrollY;stack.push(cur);cur={v,a};draw()};
 const back=()=>{if(!stack.length)return;if(cur.v==='edit'&&DIRTY&&!WARN){WARN=true;const e=$('#st');if(e)e.textContent='有未保存的修改，再返回一次将放弃修改';return}DIRTY=false;WARN=false;cur=stack.pop();draw(cur.y)};
 function draw(y){V={};document.body.classList.toggle('hn',cur.v==='home');document.body.classList.toggle('hc',cur.v==='cmp');const f=VIEWS[cur.v];$('#app').innerHTML=f(cur.a);window.scrollTo(0,y||0);$('#dr').classList.remove('on')}
 const hdr=(t,l='‹',r='')=>`<div class="bar"><button onclick="back()">${l}</button><span>${t}</span>${r}</div>`;
-const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2><ul class=ing>${(r.ingredients||[]).map(i=>`<li><span>${esc(i.name||i)}</span>${i.amount?`<i></i><b>${esc(i.amount)}</b>`:''}</li>`).join('')}</ul><h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
+const body=r=>`<h1>${esc(r.name)}</h1><p class=m>${[r.author&&'作者：'+r.author,r.source&&'来源：'+r.source,r.rating&&'评分：'+r.rating].filter(Boolean).map(esc).join('<br>')}</p><h2>材料</h2>${ingHtml(r)}<h2>步骤</h2><ol>${(r.steps||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${r.notes?`<h2>注意事项</h2><p>${esc(txt(r.notes))}</p>`:''}`;
 const SORTN={new:'按抓取时间·新到旧',old:'按抓取时间·旧到新',name:'按名称'};
 const PAL=['#FF6B1A','#E5262B','#FFB300','#D6336C','#7048E8','#1C7ED6','#0CA678','#74B816'];
 const catColor=c=>{const i=S.cats.indexOf(c);return i<0?'#9CA3AF':PAL[i%PAL.length]};
@@ -89,26 +100,51 @@ const filt=()=>{
 const NAV=`<div class=nav><button onclick="CMP=[];CQ='';go('cmp')"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>对比</button><button onclick="go('ask')"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>找食谱</button><button onclick="FILES=[];go('add')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>加食谱</button></div>`;
 /* 食谱对比（v0.1.15）：CMP=已选食谱 id，CQ=搜索词，CR=最近一次对比报告；S.cmpHide=设置里隐藏的报告项 */
 let CMP=[],CQ='',CR=null;
-const CMPK=[['sum','总结'],['var','材料品种'],['in','各食谱内的材料比例'],['x','同种材料跨食谱比例'],['oth','其它参考比例']];
+const CMPK=[['sum','总结'],['var','材料品种'],['in','材料比例'],['x','统一基准粉量对比'],['oth','其它参考比例']];
 const cmpTog=id=>{const i=CMP.indexOf(id);if(i>=0)CMP.splice(i,1);else if(CMP.length>=3){const e=$('#st');if(e)e.textContent='最多选 3 个，请先取消一个';return}else CMP.push(id);draw(scrollY)};
 const cmpHide=k=>{S.cmpHide=S.cmpHide||[];const i=S.cmpHide.indexOf(k);if(i>=0)S.cmpHide.splice(i,1);else S.cmpHide.push(k);save();draw(scrollY)};
+let RC=null;
+const ubase=()=>S.cmpBase>0?S.cmpBase:500,f1=x=>Math.round(x*10)/10;
+const grpBody=(R,N,row)=>{const gs=GRPS.filter(g=>R.some(r=>r.grp===g[0]));return gs.map(g=>(gs.length>1?`<tr class=gt><td colspan=${N+1}>${g[1]}</td></tr>`:'')+R.filter(r=>r.grp===g[0]).map(row).join('')).join('')};
+/* 统一基准粉量表：每款的粉类合计（只算面团组）都调成同一个基准粉量，再看各材料多少克（输入框改基准粉量时只重画这张表） */
+function xtbHtml(){const{names,R,tot,base,multi}=RC,u=ubase(),N=names.length;
+ return `<div class=tw><table class=tb><tr><th>对比项</th>${names.map(n=>`<th>${esc(n)}</th>`).join('')}</tr>${grpBody(R,N,r=>`<tr><td>${esc(r.name)}</td>${r.c.map((c,j)=>!c?'<td>—</td>':c.g===null?`<td>${esc(c.amt||'适量')}</td>`:base[j].g?`<td><b>${fmt(c.g*u/base[j].g)} g</b></td>`:'<td>—</td>').join('')}</tr>`)}<tr class=sum><td>${multi?'面团合计':'合计'}</td>${tot.map((t,j)=>`<td>${t&&base[j].g?fmt(t*u/base[j].g)+' g':'—'}</td>`).join('')}</tr></table></div>`}
+function setBase(v){const n=parseFloat(v);if(!(n>0))return;S.cmpBase=n;save();const e=$('#xtb');if(e)e.innerHTML=xtbHtml()}
 function repHtml(d,names){
- const H=S.cmpHide||[],sh=k=>!H.includes(k),A=x=>Array.isArray(x)?x:[],N=x=>typeof x==='number'&&isFinite(x)?x:null,e=esc,P=x=>Math.max(0,Math.min(100,N(x)||0));
- const gs=(x,est,amt)=>N(x)===null?'':((est||!/克|\d\s*g\b/i.test(amt||''))?`${est?'≈':''}${Math.round(x*10)/10} g`:'');
- const line=(n,amt,g,pct,rel,bar)=>`<div class=pc><div class=pr><span>${e(n)}</span><i></i><b>${e([amt,g].filter(Boolean).join(' '))}</b></div>${bar&&N(pct)!==null?`<div class=pb><i style="width:${P(pct)}%"></i></div>`:''}${(N(pct)!==null||N(rel)!==null)?`<small>${[N(pct)!==null?'占 '+N(pct)+'%':'',N(rel)!==null?'相对主料 '+N(rel)+'%':''].filter(Boolean).join(' · ')}</small>`:''}</div>`;
- let o=`<p class=m>对比：${names.map(e).join(' · ')}</p><p class=m>用量按常用换算估算成克，带“≈”的是估算值，仅供参考。</p>`,n=0;
+ const H=S.cmpHide||[],sh=k=>!H.includes(k),A=x=>Array.isArray(x)?x:[],N=x=>typeof x==='number'&&isFinite(x)?x:null,e=esc,NN=names.length;
+ const pick=(arr,n,j)=>{const a=A(arr);return a.find(x=>x&&x.recipe===n)||(a.length===names.length?a[j]:null)||null};
+ const R=A(d.rows).filter(r=>r&&r.name).map(r=>({name:String(r.name),grp:gkey(r.group)||'dough',flour:!!r.flour,c:names.map((n,j)=>{const c=pick(r.cells,n,j);return c?{amt:String(c.amount||''),g:N(c.grams),est:!!c.est}:null})}));
+ const D=R.filter(r=>r.grp==='dough'),DR=D.length?D:R,multi=new Set(R.map(r=>r.grp)).size>1,inTot=r=>DR===R||r.grp==='dough';
+ const tot=names.map((_,j)=>DR.reduce((a,r)=>a+(r.c[j]&&r.c[j].g||0),0));
+ const base=names.map((_,j)=>{let f=DR.reduce((a,r)=>a+(r.flour&&r.c[j]&&r.c[j].g||0),0),nm='粉类合计';
+  if(!f){let m=null;DR.forEach(r=>{const g=r.c[j]&&r.c[j].g;if(g&&(!m||g>m.g))m={g,n:r.name}});if(m){f=m.g;nm=m.n}else nm=''}return{g:f,n:nm}});
+ RC={names,R,tot,base,multi};
+ const head=`<tr><th>对比项</th>${names.map(n=>`<th>${e(n)}</th>`).join('')}</tr>`,tw=b=>`<div class=tw><table class=tb>${head}${b}</table></div>`;
+ let o=`<p class=m>对比：${names.map(e).join(' · ')}</p><p class=m>用量按常用换算估成克，带“≈”的是估算值，仅供参考。</p>`,n=0;
+ const noRows='<p class=m>AI 没有返回材料表，请返回重新对比一次。</p>';
  if(sh('sum')&&d.summary){n++;o+=`<h2>总结</h2><p>${e(d.summary)}</p>`}
- if(sh('var')){n++;const v=d.variety||{},c=A(v.common),on=A(v.only);o+=`<h2>材料品种</h2>`+(c.length?`<h3>共有材料</h3><ul class=ing>${c.map(x=>`<li><span>${e(x.name)}</span><i></i><b>${e(A(x.in).join('、'))}</b></li>`).join('')}</ul>`:'<p class=m>没有各食谱共有的材料。</p>')+on.map(x=>`<p><b>仅「${e(x.recipe)}」有：</b>${e(A(x.items).join('、')||'无')}</p>`).join('')}
- if(sh('in')){n++;o+=`<h2>各食谱内的材料比例</h2>`+(A(d.within).map(w=>`<h3>${e(w.recipe)}</h3>${w.basis?`<p class=m>${e(w.basis)}</p>`:''}${A(w.items).map(i=>line(i.name,i.amount,gs(i.grams,i.est,i.amount),i.percent,i.rel,1)).join('')}`).join('')||'<p class=m>没有可计算的内容。</p>')}
- if(sh('x')){n++;o+=`<h2>同种材料跨食谱比例</h2>`+(A(d.across).map(a=>`<h3>${e(a.ingredient)}</h3>${A(a.values).map(v=>line(v.recipe,v.amount,gs(v.grams,1,v.amount),v.percent,null,1)).join('')}${a.ratio?`<p class=ok>${e(a.ratio)}</p>`:''}${a.note?`<p class=m>${e(a.note)}</p>`:''}`).join('')||'<p class=m>没有在多个食谱里都出现的材料。</p>')}
- if(sh('oth')){n++;o+=`<h2>其它参考比例</h2>`+(A(d.other).map(t=>`<h3>${e(t.title)}</h3><ul class=ing>${A(t.values).map(v=>`<li><span>${e(v.recipe)}</span><i></i><b>${e(v.value)}</b></li>`).join('')}</ul>${t.note?`<p class=m>${e(t.note)}</p>`:''}`).join('')||'<p class=m>没有可计算的其它比例。</p>')}
+ if(sh('var')){n++;o+='<h2>材料品种</h2>';
+  if(!R.length)o+=noRows;else{
+   const cnt=r=>r.c.filter(Boolean).length,Sv=GRPS.flatMap(g=>R.filter(r=>r.grp===g[0]).map((r,i)=>[r,i]).sort((a,b)=>cnt(b[0])-cnt(a[0])||a[1]-b[1]).map(x=>x[0]));
+   o+=tw(grpBody(Sv,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map(c=>`<td>${c?'✅':'❎'}</td>`).join('')}</tr>`));
+   const all=R.filter(r=>cnt(r)===names.length).length,only=names.map((nm,j)=>[nm,R.filter(r=>cnt(r)===1&&r.c[j]).length]).filter(x=>x[1]);
+   o+=`<p class=m>✅ 有　❎ 没有。所有食谱都有的 ${all} 种${only.map(x=>`；仅「${e(x[0])}」有的 ${x[1]} 种`).join('')}。${multi?'同一种材料出现在不同组（如面团里的糖和糖水里的糖）算不同的项。':''}</p>`}}
+ if(sh('in')){n++;o+='<h2>材料比例</h2>';
+  if(!R.length)o+=noRows;else{
+   const cell=(r,c,j)=>!c?'<td>—</td>':c.g===null?`<td>${e(c.amt||'适量')}</td>`:`<td><b>${c.est?'≈':''}${fmt(c.g)} g</b>${inTot(r)&&tot[j]?`<small>${f1(c.g/tot[j]*100)}%</small>`:''}${base[j].g?`<small class=rel>${f1(c.g/base[j].g*100)}%</small>`:''}</td>`;
+   o+=tw(grpBody(R,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map((c,j)=>cell(r,c,j)).join('')}</tr>`)+`<tr class=sum><td>${multi?'面团合计':'合计'}</td>${tot.map(t=>`<td>${t?fmt(t)+' g':'—'}</td>`).join('')}</tr><tr class=sum><td>基准粉量</td>${base.map(b=>`<td>${b.g?fmt(b.g)+' g':'—'}${b.n&&b.n!=='粉类合计'?`<small>${e(b.n)}</small>`:''}</td>`).join('')}</tr>`);
+   o+='<p class=m>每格三行：用量（克）｜占该款面团总重的 %（灰）｜相对基准粉量的 %（橙，面团里的粉类合计 = 100%）。'+(multi?'馅料、表面装饰、辅助液（烫煮糖水、碱水等）不并入面团的合计和灰色百分比，只显示相对面团基准粉量的橙色百分比。':'')+'“适量”等无法换算的不计入。没有粉类的食谱，以克数最大的材料为基准。</p>'}}
+ if(sh('x')){n++;o+='<h2>统一基准粉量对比</h2>';
+  if(!R.length)o+=noRows;else o+=`<p class=m>把每款面团里的粉类合计都调成同一个基准粉量，其它材料（含馅料、表面装饰、辅助液）按同样的倍数折算，这样不同款才能直接比较。</p><div class=cnt><span>基准粉量</span><input type=number inputmode=decimal min=1 value="${ubase()}" oninput="setBase(this.value)"><span>克</span></div><div id=xtb>${xtbHtml()}</div>`}
+ if(sh('oth')){n++;o+='<h2>其它参考比例</h2>';const O=A(d.other).filter(t=>t&&t.title);
+  o+=O.length?tw(O.map(t=>`<tr><td>${e(t.title)}${t.note?`<small>${e(t.note)}</small>`:''}</td>${names.map((nm,j)=>{const v=pick(t.values,nm,j);return `<td>${v&&v.value?e(v.value):'—'}</td>`}).join('')}</tr>`).join('')):'<p class=m>没有可计算的其它比例。</p>'}
  return n?o:'<p class=m>对比报告的所有项都被隐藏了，可以在“设置 → 对比报告显示项”里打开。</p>'}
 async function compare(){
  if(CMP.length<2)return;
  const rs=CMP.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),seen={},names=rs.map(r=>{let n=r.name||'未命名';if(seen[n]){seen[n]++;n+=`（${seen[n]}）`}else seen[n]=1;return n});
  let stop=()=>{};
  try{busy(true,'正在发送…');stop=wait('AI 正在对比');
-  const j=await api('/compare',{recipes:rs.map((r,i)=>({name:names[i],ingredients:(r.ingredients||[]).map(x=>({name:x.name||x,amount:x.amount||''}))}))});
+  const j=await api('/compare',{recipes:rs.map((r,i)=>({name:names[i],ingredients:(r.ingredients||[]).map(x=>({name:x.name||x,amount:x.amount||'',...(x.grp?{group:gname(x.grp)}:{})})),steps:(r.steps||[]).slice(0,25).map(s=>String(s).slice(0,100))}))});
   if(!j.report||typeof j.report!=='object')throw new Error('AI 没有返回对比结果');
   CR={names,d:j.report};go('rep')
  }catch(e){busy(false,'失败：'+e.message)}finally{stop()}}
@@ -116,14 +152,38 @@ async function compare(){
 let SC={},MC={};
 const fmt=x=>x>=20?String(Math.round(x)):String(Math.round(x*10)/10);
 const sigOf=r=>(r.ingredients||[]).map(i=>(i.name||i)+'|'+(i.amount||'')).join(';');
-const moldNote=r=>r.mold&&r.mold.vol>0?(r.mold.src==='user'?'你保存的':'AI 识别，请核对（改了点“保存”就会记住；数量也请核对）'):'';
-function moldStatus(w){const v=SC[w==='o'?'ov':'tv'],c=SC[w+'c']||1,x=SC[w+'x'];if(!(v>0))return x||'';return (x?x+'，':'')+'单个体积 ≈ '+fmt(v)+' ml'+(c>1?` × ${c} 个 = 共 ${fmt(v*c)} ml`:'')}
+/* 材料分组（v0.1.19）：grp = dough 面团 / fill 馅料 / top 表面装饰 / aux 辅助液（烫煮糖水、碱水、刷面液等，不算进面包本体）；没写 grp 的按面团。
+   r.gm = 每组怎么换算（m: f 跟比例 / k 保持原量 / c 自定义系数 x；src: ai / user），r.gv=1 表示已做过 AI 分组 */
+const GRPS=[['dough','面团'],['fill','馅料'],['top','表面装饰'],['aux','辅助液']],SCOPE=['dough','fill','top'];
+const gname=k=>(GRPS.find(g=>g[0]===k)||GRPS[0])[1];
+function gkey(s){s=String(s||'').trim();if(!s)return '';const f=GRPS.find(g=>g[0]===s||g[1]===s);if(f)return f[0];
+ if(/馅|夹心/.test(s))return 'fill';if(/装饰|表面|撒|酥粒/.test(s))return 'top';if(/糖水|碱水|烫煮|浸泡|刷|糖浆|辅助|液/.test(s))return 'aux';if(/面团|主面|中种|汤种|老面|酵头|面糊/.test(s))return 'dough';return ''}
+const gOf=i=>gkey(i&&i.grp)||'dough';
+const gmOf=(r,g)=>(r.gm&&r.gm[g])||{m:g==='aux'?'k':'f',x:1,why:'',src:'default'};
+function normIng(list,old){
+ const prev={};(old||[]).forEach(i=>{if(i&&i.grp)prev[i.name]=i.grp});
+ const a=(list||[]).map(i=>typeof i==='string'?{name:i.trim(),amount:'',grp:''}:{name:String(i&&i.name||'').trim(),amount:String(i&&i.amount||'').trim(),grp:gkey(i&&(i.group||i.grp))||prev[String(i&&i.name||'').trim()]||''}).filter(i=>i.name);
+ const gs=new Set(a.map(i=>i.grp||'dough'));
+ if(gs.size<=1&&(!a[0]||(a[0].grp||'dough')==='dough'))a.forEach(i=>delete i.grp);else a.forEach(i=>{if(!i.grp)delete i.grp});
+ return a}
+function ingHtml(r){const L=r.ingredients||[],gs=GRPS.filter(g=>L.some(i=>gOf(i)===g[0])),li=i=>`<li><span>${esc(i.name||i)}</span>${i.amount?`<i></i><b>${esc(i.amount)}</b>`:''}</li>`;
+ return gs.length>1?gs.map(g=>`<h3>${g[1]}</h3><ul class=ing>${L.filter(i=>gOf(i)===g[0]).map(li).join('')}</ul>`).join(''):`<ul class=ing>${L.map(li).join('')}</ul>`}
+function ingTxt(r){const L=(r.ingredients||[]).map((i,k)=>({i,k,g:GRPS.findIndex(x=>x[0]===gOf(i))})),hasG=L.some(y=>y.i.grp);if(hasG)L.sort((a,b)=>a.g-b.g||a.k-b.k);
+ let c=-1;const o=[];L.forEach(y=>{if(hasG&&y.g!==c){o.push('【'+GRPS[y.g][1]+'】');c=y.g}o.push((y.i.name||y.i)+(y.i.amount?'｜'+y.i.amount:''))});return o.join('\n')}
+function parseIngTxt(lines){let cg='';return lines.flatMap(l=>{const hm=l.match(/^[【\[](.+?)[】\]]\s*$/);if(hm){cg=gkey(hm[1])||'dough';return[]}
+ const m=l.split(/[｜|]/),nm=m[0].trim();return nm?[{name:nm,amount:m.slice(1).join('｜').trim(),...(cg?{grp:cg}:{})}]:[]})}
+function setGM(g,m){const r=S.recipes.find(x=>x.id===SC.id);r.gm=r.gm||{};const o=gmOf(r,g);r.gm[g]={m,x:m==='c'&&o.m==='c'&&o.x>0?o.x:1,why:'',src:'user'};save();renderScale()}
+function setGX(g,v){const r=S.recipes.find(x=>x.id===SC.id),x=parseFloat(v);if(!(x>0))return;r.gm=r.gm||{};r.gm[g]={m:'c',x,why:'',src:'user'};save();renderScale()}
+function setIG(id,k,g){const r=S.recipes.find(x=>x.id===id);r.ingredients[k].grp=g;save();draw(scrollY)}
+const moldNote=r=>r.mold&&(r.mold.vol>0||r.mold.ug>0)?(r.mold.src==='user'?'你保存的':'AI 识别，请核对（改了点“保存”就会记住；数量也请核对）'):'';
+function moldStatus(w){const v=SC[w==='o'?'ov':'tv'],c=SC[w+'c']||1,x=SC[w+'x'],wk=(SC[w+'k']||'v')==='w',U=wk?' g':' ml';if(!(v>0))return x||'';return (x?x+'，':'')+(wk?'单个重量 = ':'单个体积 ≈ ')+fmt(v)+U+(c>1?` × ${c} 个 = 共 ${fmt(v*c)}${U}`:'')}
 function scCount(w,v){const n=Math.max(1,Math.min(20,parseInt(v)||1));SC[w+'c']=n;if(w==='o')SC.omEdited=true;const st=$('#'+w+'st');if(st)st.textContent=moldStatus(w);renderScale()}
 function parseAmt(s){const m=String(s||'').trim().match(/^(\d+(?:\.\d+)?|\d+\/\d+|[一二两三四五六七八九十半])\s*([^\d].*)?$/);if(!m)return null;
  let n=m[1];if(/^\d+\/\d+$/.test(n)){const[a,b]=n.split('/');n=a/b}else if(/^[一二两三四五六七八九十半]$/.test(n))n={一:1,二:2,两:2,三:3,四:4,五:5,六:6,七:7,八:8,九:9,十:10,半:.5}[n];else n=parseFloat(n);
  return isFinite(n)?{n,u:(m[2]||'').trim()}:null}
 function parseMold(s){s=(s||'').trim().toLowerCase();if(!s)return null;
  const num=x=>parseFloat(x),u=/mm|毫米/.test(s)?.1:1;let m;
+ if(m=s.match(/^(?:每个|单个|每只|每份)?\s*(\d+(?:\.\d+)?)\s*(g|克|kg|千克|公斤)\s*(?:\/个|\/只|\/份|每个|每只|每份|个|只|份)?$/))return{vol:num(m[1])*(/^(kg|千克|公斤)$/.test(m[2])?1000:1),desc:'单个重量 '+m[1]+' '+m[2],kind:'w'};
  if(m=s.match(/(\d+(?:\.\d+)?)\s*(ml|毫升|cc|cm3|cm³|立方厘米)/))return{vol:num(m[1]),desc:'容积 '+m[1]+' ml'};
  if(m=s.match(/(\d+(?:\.\d+)?)\s*(升|l)(?![a-z])/))return{vol:num(m[1])*1000,desc:'容积 '+m[1]+' 升'};
  if(m=s.match(/周长\D*(\d+(?:\.\d+)?)\D+(?:高|h)\D*(\d+(?:\.\d+)?)/)){const p=num(m[1])*u,hh=num(m[2])*u;return{vol:p*p*hh/(4*Math.PI),desc:`周长 ${m[1]} × 高 ${m[2]}`}}
@@ -134,51 +194,80 @@ function parseMold(s){s=(s||'').trim().toLowerCase();if(!s)return null;
  return null}
 async function scalePrep(id,force){
  const r=S.recipes.find(x=>x.id===id);if(!r)return;
- if(!force&&r.ig&&r.igs===sigOf(r))return;
+ if(!force&&r.ig&&r.igs===sigOf(r)&&r.gv===1)return;
  if(!(r.ingredients||[]).length)return;
  let stop=()=>{};
- try{stop=wait('AI 正在估算各材料的克数和原模具');
-  const j=await api('/prep',{name:r.name,ingredients:(r.ingredients||[]).map(i=>({name:i.name||i,amount:i.amount||''})),steps:(r.steps||[]).slice(0,40),notes:txt(r.notes)});
+ try{stop=wait('AI 正在估算各材料的克数、分组和原模具');
+  const j=await api('/prep',{name:r.name,ingredients:(r.ingredients||[]).map(i=>({name:i.name||i,amount:i.amount||'',...(i.grp?{group:gname(i.grp)}:{})})),steps:(r.steps||[]).slice(0,40),notes:txt(r.notes)});
   const G=Array.isArray(j.grams)?j.grams:[];
   r.ig=(r.ingredients||[]).map((_,k)=>{const x=G[k]||{};return{g:typeof x.g==='number'&&x.g>=0?x.g:null,e:!!x.e}});r.igs=sigOf(r);
-  if(!r.mold||r.mold.src!=='user'){const m=j.mold||{};r.mold={text:String(m.text||'').slice(0,60),vol:typeof m.vol==='number'&&m.vol>0?m.vol:null,count:Math.max(1,Math.min(20,Math.round(Number(m.count))||1)),src:'ai'}}
-  if(SC.id===id&&!SC.omEdited){SC.om=r.mold.text;SC.ov=r.mold.vol;SC.oc=r.mold.count||1;SC.ox=moldNote(r)}
+  const ga=(r.ingredients||[]).map((i,k)=>i.grp||gkey((G[k]||{}).grp)||'dough');
+  if(new Set(ga).size>1)(r.ingredients||[]).forEach((i,k)=>{if(!i.grp)i.grp=ga[k]});
+  r.gm=r.gm||{};Object.entries(j.gm&&typeof j.gm==='object'?j.gm:{}).forEach(([n,v])=>{const gk=gkey(n);if(!gk||!v||(r.gm[gk]&&r.gm[gk].src==='user'))return;r.gm[gk]={m:v.m==='k'?'k':'f',x:1,why:String(v.why||'').slice(0,60),src:'ai'}});
+  r.gv=1;
+  if(!r.mold||r.mold.src!=='user'){const m=j.mold||{};r.mold={text:String(m.text||'').slice(0,60),vol:typeof m.vol==='number'&&m.vol>0?m.vol:null,ug:typeof m.unit_g==='number'&&m.unit_g>0?m.unit_g:null,count:Math.max(1,Math.min(20,Math.round(Number(m.count))||1)),src:'ai'}}
+  if(SC.id===id&&!SC.omEdited){SC.om=r.mold.text;SC.ov=r.mold.vol||r.mold.ug||null;SC.ok=r.mold.vol>0?'v':(r.mold.ug>0?'w':'v');SC.oc=r.mold.count||1;SC.ox=moldNote(r)}
   await save();if(cur.v==='scale'&&cur.a===id)draw(scrollY)
  }catch(e){const s=$('#st');if(s)s.textContent='估算失败：'+e.message+'（可以返回重进再试）'}finally{stop()}}
 async function scMold(w,v,fin){
  const T=w==='o'?'om':'tm',V=w==='o'?'ov':'tv',st=$('#'+w+'st');SC[T]=v;if(w==='o')SC.omEdited=true;
  const lp=parseMold(v),ok=SC.id&&true;
- if(lp){SC[V]=lp.vol;SC[w+'x']='识别为 '+lp.desc;if(st)st.textContent=moldStatus(w);return renderScale()}
+ if(lp){SC[V]=lp.vol;SC[w+'k']=lp.kind||'v';SC[w+'x']='识别为 '+lp.desc;if(st)st.textContent=moldStatus(w);return renderScale()}
  if(!v.trim()){SC[V]=null;SC[w+'x']='';if(st)st.textContent='';return renderScale()}
  if(!fin){SC[V]=null;if(st)st.textContent='这个写法需要 AI 估算体积：输入完成后点一下空白处';return renderScale()}
  if(st)st.textContent='AI 正在估算体积…';
  try{const j=MC[v]||(MC[v]=await api('/mold',{spec:v})),vol=Number(j.vol);if(!(vol>0))throw new Error('AI 没有给出体积');
-  if(SC[T]!==v)return;SC[V]=vol;const cn=Math.max(1,Math.min(20,Math.round(Number(j.count))||1));if(cn>1&&(SC[w+'c']||1)===1){SC[w+'c']=cn;const ci=$('#'+w+'cn');if(ci)ci.value=cn}
+  if(SC[T]!==v)return;SC[V]=vol;SC[w+'k']='v';const cn=Math.max(1,Math.min(20,Math.round(Number(j.count))||1));if(cn>1&&(SC[w+'c']||1)===1){SC[w+'c']=cn;const ci=$('#'+w+'cn');if(ci)ci.value=cn}
   SC[w+'x']=`AI 估算：${j.desc||''}（估算，请核对）`;if(st)st.textContent=moldStatus(w);renderScale()
  }catch(e){if(st)st.textContent='失败：'+e.message}}
 function saveOrigMold(id){const r=S.recipes.find(x=>x.id===id),st=$('#ost2');
- if(!(SC.ov>0)){if(st)st.textContent='先填好原模具（要能算出体积）';return}
- r.mold={text:(SC.om||'').trim(),vol:SC.ov,count:SC.oc||1,src:'user'};SC.ox='你保存的';save();if(st)st.textContent='已保存：以后这个食谱的原模具按你填的来'}
+ if(!(SC.ov>0)){if(st)st.textContent='先填好原模具（要能算出体积或单个重量）';return}
+ const wk=(SC.ok||'v')==='w';r.mold={text:(SC.om||'').trim(),vol:wk?null:SC.ov,ug:wk?SC.ov:null,count:SC.oc||1,src:'user'};SC.ox='你保存的';save();if(st)st.textContent='已保存：以后这个食谱的原模具按你填的来'}
 function scaleBody(r){
- const ing=r.ingredients||[],ig=r.ig||[],total=ig.reduce((a,x)=>a+(x&&x.g||0),0),skip=ing.filter((_,k)=>!(ig[k]&&ig[k].g!==null&&ig[k].g!==undefined)).length;
+ const ing=r.ingredients||[],ig=r.ig||[],G=ing.map((x,i)=>({x,i,grp:gOf(x),g:ig[i]&&typeof ig[i].g==='number'?ig[i].g:null}));
+ const groups=GRPS.filter(g=>G.some(y=>y.grp===g[0])).map(g=>g[0]),multi=groups.length>1;
+ const sumG=gk=>G.filter(y=>y.grp===gk).reduce((a,y)=>a+(y.g||0),0),skip=G.filter(y=>y.g===null).length;
+ const mo=gk=>gmOf(r,gk),fx=gk=>{const m=mo(gk);return m.m==='k'?1:(m.x>0?m.x:1)},mult=(gk,k)=>mo(gk).m==='f'?k:fx(gk);
+ const scopeOld=SCOPE.reduce((a,gk)=>a+sumG(gk),0);
  let k=null,msg='';
- if(SC.mode==='tot'){const T=parseFloat(SC.tot);if(!total)msg='还没有可换算的克数（AI 估算中，或这个食谱的用量都无法换算）';else if(!(T>0))msg='输入想要的总重量（克）';else k=T/total}
- else if(SC.mode==='one'){const i=SC.oneI,g=i==null?null:(ig[i]&&ig[i].g),G=parseFloat(SC.oneG);if(i==null)msg='点下面的材料，选择要固定重量的那一项，再输入它的目标重量';else if(!g)msg='这一项没有克数，没法作为基准，换一项试试';else if(!(G>0))msg='输入「'+(ing[i].name||ing[i])+'」想要的重量（克）';else k=G/g}
- else{if(!(SC.ov>0))msg='先填原模具（或等 AI 识别）';else if(!(SC.tv>0))msg='填目标模具，例如 20×10×10、直径18 高7、周长56 高7、1800ml';else k=(SC.tv*(SC.tc||1))/(SC.ov*(SC.oc||1))}
+ if(SC.mode==='tot'){
+  const T=parseFloat(SC.tot);let P=0,F=0;SCOPE.forEach(gk=>{const s=sumG(gk);if(mo(gk).m==='f')P+=s;else F+=s*fx(gk)});
+  if(!scopeOld)msg='还没有可换算的克数（AI 估算中，或这个食谱的用量都无法换算）';
+  else if(!(T>0))msg='输入想要的总重量（克）。总重指面团＋馅料＋表面装饰，烫煮糖水、碱水等辅助液不算';
+  else if(!P)msg='面团、馅料、表面装饰都设成了“保持原量”或“自定义”，没有跟比例的组，没法按总重量换算';
+  else if(T<=F)msg='目标总重量比“保持原量/自定义”的部分还小，请调大';
+  else k=(T-F)/P}
+ else if(SC.mode==='one'){
+  const y=SC.oneI==null?null:G[SC.oneI],Gt=parseFloat(SC.oneG);
+  if(!y)msg='点下面的材料，选择要固定重量的那一项，再输入它的目标重量';
+  else if(!y.g)msg='这一项没有克数，没法作为基准，换一项试试';
+  else if(mo(y.grp).m!=='f')msg='这一项所在的「'+gname(y.grp)+'」设成了“保持原量/自定义”，请先把这一组改成“跟比例”';
+  else if(!(Gt>0))msg='输入「'+(y.x.name||y.x)+'」想要的重量（克）';
+  else k=Gt/y.g}
+ else{
+  if(!(SC.ov>0))msg='先填原模具或原来的单个重量（或等 AI 识别）';
+  else if(!(SC.tv>0))msg='填目标模具（例如 20×10×10、直径18 高7、1800ml）或目标单个重量（例如 50g）';
+  else if((SC.ok||'v')!==(SC.tk||'v'))msg='原和目标要用同一种方式：都填模具/体积，或都填单个重量（例如 60g）';
+  else k=(SC.tv*(SC.tc||1))/(SC.ov*(SC.oc||1))}
  const one=SC.mode==='one',eggs=[];
- const rows=ing.map((x,i)=>{const nm=x.name||x,amt=x.amount||'',p=parseAmt(amt),g=ig[i]&&ig[i].g;
+ const rowOf=y=>{const x=y.x,i=y.i,nm=x.name||x,amt=x.amount||'',p=parseAmt(amt),g=y.g,mm=k===null?null:mult(y.grp,k);
   let nw=amt?('（'+amt+'，不换算）'):'',gr='';
-  if(k!==null){if(p){nw=fmt(p.n*k)+p.u;if(/^[个只颗枚]/.test(p.u)&&Math.abs(p.n*k-Math.round(p.n*k))>.05)eggs.push(nm)}if(g!==null&&g!==undefined&&!(p&&/^(g|克)$/i.test(p.u)))gr=` ≈${fmt(g*k)} g`}
-  const sel=one&&SC.oneI===i,orig=amt?`原：${esc(amt)}${g!=null&&!/^\d+(\.\d+)?\s*(g|克)$/i.test(amt)?`（≈${fmt(g)} g）`:''}`:'';
-  return one?`<button class="row${sel?' sel':''}" onclick="SC.oneI=${i};draw(scrollY)">${sel?'◉':'○'} ${esc(nm)}<small>${orig}${k!==null?' → 新：'+esc(nw)+esc(gr):''}</small></button>`
-   :`<li><span>${esc(nm)}<small>${orig}</small></span><i></i><b>${esc(nw)}${esc(gr)}</b></li>`}).join('');
+  if(mm!==null){if(p){nw=fmt(p.n*mm)+p.u;if(/^[个只颗枚]/.test(p.u)&&Math.abs(p.n*mm-Math.round(p.n*mm))>.05)eggs.push(nm)}if(g!==null&&!(p&&/^(g|克)$/i.test(p.u)))gr=` ≈${fmt(g*mm)} g`}
+  const sel=one&&SC.oneI===i,orig=amt?`原：${esc(amt)}${g!==null&&!/^\d+(\.\d+)?\s*(g|克)$/i.test(amt)?`（≈${fmt(g)} g）`:''}`:'';
+  return one?`<button class="row${sel?' sel':''}" onclick="SC.oneI=${i};draw(scrollY)">${sel?'◉':'○'} ${esc(nm)}<small>${orig}${mm!==null?' → 新：'+esc(nw)+esc(gr):''}</small></button>`
+   :`<li><span>${esc(nm)}<small>${orig}</small></span><i></i><b>${esc(nw)}${esc(gr)}</b></li>`};
+ const ctl=gk=>{const m=mo(gk),note=m.src==='user'?'你设置的':m.src==='ai'?'AI 建议'+(m.why?'：'+esc(m.why):''):'',b=(v,t)=>`<button class="${m.m===v?'on':''}" onclick="setGM('${gk}','${v}')">${t}</button>`;
+  return `<div class="seg s">${b('f','跟比例')}${b('k','保持原量')}${b('c','自定义')}</div>${m.m==='c'?`<div class=cnt><span>系数 ×</span><input type=number step=any min=0 value="${m.x>0?m.x:1}" onchange="setGX('${gk}',this.value)"></div>`:''}${note?`<p class=m>${note}</p>`:''}`};
+ const blocks=groups.map(gk=>{const ys=G.filter(y=>y.grp===gk),so=sumG(gk);
+  return (multi?`<h3>${gname(gk)}${SCOPE.includes(gk)?'':'<small>（不计入总重）</small>'}</h3>${ctl(gk)}`:'')+(one?ys.map(rowOf).join(''):`<ul class=ing>${ys.map(rowOf).join('')}</ul>`)+((multi&&k!==null&&so)?`<p class=m>小计：${fmt(so)} g → ${fmt(so*mult(gk,k))} g</p>`:'')}).join('');
  let o='';
  if(k===null)o+=`<p class=m>${msg}</p>`;
- else{o+=`<p class=cur><b>系数 ×${Math.round(k*100)/100}（${k>=1?'放大':'缩小'}）</b><br><span>${total?`总重 ${fmt(total)} g → ${fmt(total*k)} g`:''}${skip&&total?` · 有 ${skip} 项无法换算的（适量等）未计入`:''}</span></p>`;
+ else{const nw=SCOPE.reduce((a,gk)=>a+sumG(gk)*mult(gk,k),0);
+  o+=`<p class=cur><b>系数 ×${Math.round(k*100)/100}（${k>=1?'放大':'缩小'}）</b><br><span>${scopeOld?`${multi?'面团＋馅料＋表面装饰':'总重'} ${fmt(scopeOld)} g → ${fmt(nw)} g`:''}${skip&&scopeOld?` · 有 ${skip} 项无法换算的（适量等）未计入`:''}</span></p>`;
   if(k>2.5||k<.4)o+='<p class=m>换算幅度比较大：盐、酵母、膨松剂、香料等不一定按比例线性变化，建议适当微调。</p>';
   if(eggs.length)o+=`<p class=m>「${esc(eggs.join('、'))}」换算后不是整数，整个的材料建议按克数称取（蛋液可打散后称）。</p>`;
-  if(SC.mode==='mold')o+='<p class=m>按体积比例换算，假设两个模具的装填高度比例相同；烘烤时间和温度要自己按体积调整。</p>'}
- return o+(one?rows:`<ul class=ing>${rows}</ul>`)}
+  if(SC.mode==='mold')o+=(SC.ok||'v')==='w'?'<p class=m>按总重量（单个重量 × 数量）的比例换算；烘烤时间和温度要自己按大小调整。</p>':'<p class=m>按体积比例换算，假设两个模具的装填高度比例相同；烘烤时间和温度要自己按体积调整。</p>'}
+ return o+blocks}
 function renderScale(){const r=S.recipes.find(x=>x.id===SC.id),e=$('#sres');if(r&&e)e.innerHTML=scaleBody(r)}
 const VIEWS={
 home(){
@@ -209,9 +298,9 @@ sug(){
  return hdr(`建议 ${i+1} / ${L.length}`)+`<div class=pg>${i===0&&SG.madeN?`<p class=m>另有 ${SG.madeN} 个匹配但已做过的食谱，已排在后面。</p>`:''}<div class=big>${s.match}% 匹配</div><div class=pro><i style="width:${s.match}%"></i></div>${r.made?`<p class=ok>你已做过这个（${esc(r.made)}）</p>`:''}${(r.saves||1)>1?'<p class=m>这个食谱你重复收藏过，所以优先考虑。</p>':''}<h2>推荐理由</h2><p>${esc(s.reason)}</p>${body(r)}<button class="btn y" onclick="V.swipe('L')">下一个 ›（也可左划）</button><button class="btn g" onclick="V.swipe('R')">‹ 上一个（也可右划）</button></div>`},
 edit(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('编辑食谱')+'<div class=pg>食谱不存在</div>';DIRTY=false;WARN=false;
- const f=(k,l,v)=>`<h2>${l}</h2><input id=${k} value="${esc(v)}">`,ing=(r.ingredients||[]).map(i=>(i.name||i)+(i.amount?'｜'+i.amount:'')).join('\n');
+ const f=(k,l,v)=>`<h2>${l}</h2><input id=${k} value="${esc(v)}">`,ing=ingTxt(r);
  return hdr('编辑食谱')+`<div class=pg oninput="DIRTY=true;WARN=false">${f('e_n','名称',r.name)}${f('e_a','作者',r.author)}${f('e_s','来源',r.source)}${f('e_r','评分/评级',r.rating)}
- <h2>材料</h2><p class=m>每行一个，名称和用量用“｜”隔开，例如：鸡蛋｜3个</p><textarea id=e_i style="min-height:220px">${esc(ing)}</textarea>
+ <h2>材料</h2><p class=m>每行一个，名称和用量用“｜”隔开，例如：鸡蛋｜3个。分组：用单独一行的【面团】【馅料】【表面装饰】【辅助液】标出下面的材料属于哪一组（辅助液＝烫煮糖水、碱水、刷面液等）；没有小标题的都算面团。</p><textarea id=e_i style="min-height:220px">${esc(ing)}</textarea>
  <h2>步骤</h2><p class=m>每行一步，不用写序号</p><textarea id=e_p style="min-height:260px">${esc((r.steps||[]).join('\n'))}</textarea>
  <h2>注意事项</h2><textarea id=e_t>${esc(txt(r.notes))}</textarea>
  <button class=btn onclick="saveEdit('${id}')">保存修改</button><p id=st class=m></p></div>`},
@@ -221,16 +310,19 @@ cmp(){
 rep(){
  if(!CR)return hdr('对比报告')+'<div class=pg>没有报告</div>';
  return hdr('对比报告')+`<div class=pg>${repHtml(CR.d,CR.names)}</div>`},
+grp(id){
+ const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('材料分组')+'<div class=pg>食谱不存在</div>';
+ return hdr('材料分组')+`<div class=pg><h1>${esc(r.name)}</h1><p class=m>给每个材料选组：面团、馅料、表面装饰，辅助液＝只用于烫煮、浸泡、涂刷的液体（烫贝果的糖水、碱水包的碱水、刷面液等），不算进面包本体。改了会记住。</p>${(r.ingredients||[]).map((i,k)=>`<div class=gi><span>${esc(i.name||i)}<small>${esc(i.amount||'')}</small></span><div class="seg s">${GRPS.map(g=>`<button class="${gOf(i)===g[0]?'on':''}" onclick="setIG('${id}',${k},'${g[0]}')">${g[1]}</button>`).join('')}</div></div>`).join('')}</div>`},
 scale(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('换算用量')+'<div class=pg>食谱不存在</div>';
- if(SC.id!==id)SC={id,mode:'tot',tot:'',oneI:null,oneG:'',om:(r.mold&&r.mold.text)||'',ov:(r.mold&&r.mold.vol)||null,oc:(r.mold&&r.mold.count)||1,ox:moldNote(r),tm:'',tv:null,tc:1,omEdited:false};
+ if(SC.id!==id)SC={id,mode:'tot',tot:'',oneI:null,oneG:'',om:(r.mold&&r.mold.text)||'',ov:(r.mold&&(r.mold.vol||r.mold.ug))||null,ok:(r.mold&&!(r.mold.vol>0)&&r.mold.ug>0)?'w':'v',oc:(r.mold&&r.mold.count)||1,ox:moldNote(r),tm:'',tv:null,tk:'v',tc:1,omEdited:false};
  const M=[['tot','总重量'],['one','指定某一项'],['mold','模具']];
  let inp='';
  if(SC.mode==='tot')inp=`<p class=m>想做多少克？按现在的比例算出每项材料。</p><input inputmode=decimal placeholder="目标总重量（克）" value="${esc(SC.tot)}" oninput="SC.tot=this.value;renderScale()">`;
  else if(SC.mode==='one')inp=SC.oneI==null?'':`<input inputmode=decimal placeholder="这一项的目标重量（克）" value="${esc(SC.oneG)}" oninput="SC.oneG=this.value;renderScale()">`;
- else inp=`<h2>原模具</h2><input placeholder="${r.mold&&r.mold.text?'':'原来用的单个模具，例如 900g吐司模、20×10×10'}" value="${esc(SC.om)}" oninput="scMold('o',this.value)" onchange="scMold('o',this.value,1)"><div class=cnt><span>数量</span><input id=ocn type=number inputmode=numeric min=1 max=20 value="${SC.oc||1}" oninput="scCount('o',this.value)"><span>个模具</span></div><p id=ost class=m>${moldStatus('o')}</p><button class="btn g" onclick="saveOrigMold('${id}')">保存为这个食谱的原模具</button><p id=ost2 class=m></p>
-  <h2>目标模具</h2><input placeholder="例：20×10×10、直径18 高7、周长56 高7、1800ml、450g吐司模" value="${esc(SC.tm)}" oninput="scMold('t',this.value)" onchange="scMold('t',this.value,1)"><div class=cnt><span>数量</span><input id=tcn type=number inputmode=numeric min=1 max=20 value="${SC.tc||1}" oninput="scCount('t',this.value)"><span>个模具</span></div><p id=tst class=m>${moldStatus('t')}</p><p class=m>规格只写单个模具，同时用了几个就在“数量”里填几个（比如 900g 吐司模做 4 条，规格写 900g吐司模，数量填 4）；换算按总体积比例。尺寸默认厘米，写“mm”按毫米算；规格名（如“8寸圆模”）由 AI 估算体积。</p>`;
- return hdr('换算用量')+`<div class=pg><h1>${esc(r.name)}</h1><div class=seg>${M.map(([k,t])=>`<button class="${SC.mode===k?'on':''}" onclick="SC.mode='${k}';draw()">${t}</button>`).join('')}</div>${inp}<p id=st class=m></p><button class="btn g" onclick="scalePrep('${id}',1)">重新让 AI 估算克数</button><div id=sres>${scaleBody(r)}</div></div>`},
+ else inp=`<h2>原模具</h2><input placeholder="${r.mold&&r.mold.text?'':'原来用的单个模具或单个重量，例如 900g吐司模、20×10×10、60g'}" value="${esc(SC.om)}" oninput="scMold('o',this.value)" onchange="scMold('o',this.value,1)"><div class=cnt><span>数量</span><input id=ocn type=number inputmode=numeric min=1 max=20 value="${SC.oc||1}" oninput="scCount('o',this.value)"><span>个模具</span></div><p id=ost class=m>${moldStatus('o')}</p><button class="btn g" onclick="saveOrigMold('${id}')">保存为这个食谱的原模具</button><p id=ost2 class=m></p>
+  <h2>目标模具</h2><input placeholder="例：20×10×10、直径18 高7、周长56 高7、1800ml、450g吐司模、50g（单个重量）" value="${esc(SC.tm)}" oninput="scMold('t',this.value)" onchange="scMold('t',this.value,1)"><div class=cnt><span>数量</span><input id=tcn type=number inputmode=numeric min=1 max=20 value="${SC.tc||1}" oninput="scCount('t',this.value)"><span>个模具</span></div><p id=tst class=m>${moldStatus('t')}</p><p class=m>规格只写单个模具，同时用了几个就在“数量”里填几个（比如 900g 吐司模做 4 条，规格写 900g吐司模，数量填 4）；换算按总体积比例。也可以只填单个重量，例如 60g（数量填 8 就是 8 个各 60g），按总重量比例换算——原和目标要用同一种方式（都填模具/体积，或都填单个重量）。尺寸默认厘米，写“mm”按毫米算；规格名（如“8寸圆模”）由 AI 估算体积。</p>`;
+ return hdr('换算用量')+`<div class=pg><h1>${esc(r.name)}</h1><div class=seg>${M.map(([k,t])=>`<button class="${SC.mode===k?'on':''}" onclick="SC.mode='${k}';draw()">${t}</button>`).join('')}</div>${inp}<p id=st class=m></p><button class="btn g" onclick="scalePrep('${id}',1)">重新让 AI 估算克数</button><button class="btn g" onclick="go('grp','${id}')">调整材料分组 ›</button><div id=sres>${scaleBody(r)}</div></div>`},
 set(){
  return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>对比报告显示项</h2>${CMPK.map(([k,t])=>`<button class=row onclick="cmpHide('${k}')">${(S.cmpHide||[]).includes(k)?'☐':'☑'} ${t}</button>`).join('')}<p class=m>取消勾选的项，在对比报告里不显示。</p><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
 };
@@ -248,7 +340,7 @@ function saveEdit(id){
  const r=S.recipes.find(x=>x.id===id),v=s=>$(s).value.trim(),ls=s=>v(s).split('\n').map(x=>x.trim()).filter(Boolean);
  if(!v('#e_n'))return $('#st').textContent='名称不能为空';
  r.name=v('#e_n');r.author=v('#e_a');r.source=v('#e_s');r.rating=v('#e_r');
- r.ingredients=ls('#e_i').map(l=>{const m=l.split(/[｜|]/);return{name:m[0].trim(),amount:m.slice(1).join('｜').trim()}}).filter(i=>i.name);
+ r.ingredients=parseIngTxt(ls('#e_i'));
  r.steps=ls('#e_p');r.notes=v('#e_t');delete r.bak;DIRTY=false;WARN=false;save();back()}
 const mark=id=>{const r=S.recipes.find(x=>x.id===id);r.made=r.made?'':new Date().toLocaleDateString('zh-CN');save();draw(scrollY)};
 const setCat=(id,c)=>{if(!c)return;const rr=S.recipes.find(x=>x.id===id),old=rr.category;if(!S.cats.includes(c))S.cats.push(c);
@@ -270,12 +362,13 @@ const fcText=()=>FILES.length?`已选 ${FILES.length} 张，共 ${Math.ceil(FILE
 const chunk=(a,n)=>{const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o};
 const pack=async f=>{const a=await Promise.all(f.map(shrink));if(a.some(x=>!x))throw new Error('有图片无法读取（格式不支持？），请换成 PNG 或 JPG');return a};
 const slim=r=>({name:r.name,author:r.author,source:r.source,rating:r.rating,ingredients:r.ingredients,steps:r.steps,notes:r.notes});
+const aiRec=r=>({...slim(r),ingredients:(r.ingredients||[]).map(i=>({name:i.name||i,amount:i.amount||'',...(i.grp?{group:gname(i.grp)}:{})}))});
 async function mergeInto(r,imgs){
- const j=await api('/merge',{recipe:slim(r),images:imgs}),n=j.recipe;
+ const j=await api('/merge',{recipe:aiRec(r),images:imgs}),n=j.recipe;
  if(!n)throw new Error('AI 没有返回合并结果');
  const sz=x=>(x.ingredients||[]).length+(x.steps||[]).length;
  if(sz(n)<sz(r)*0.8)throw new Error('合并结果比原来少了很多内容，已放弃这一批，原食谱没有改动');
- Object.assign(r,{name:n.name||r.name,author:r.author||n.author||'',source:r.source||n.source||'',rating:r.rating||n.rating||'',ingredients:n.ingredients||[],steps:n.steps||[],notes:txt(n.notes)||txt(r.notes)});
+ Object.assign(r,{name:n.name||r.name,author:r.author||n.author||'',source:r.source||n.source||'',rating:r.rating||n.rating||'',ingredients:normIng(n.ingredients,r.ingredients),steps:n.steps||[],notes:txt(n.notes)||txt(r.notes)});
  await save()}
 function undoMerge(id){const r=S.recipes.find(x=>x.id===id);if(!r||!r.bak)return;Object.assign(r,r.bak);delete r.bak;save();draw(scrollY)}
 async function extract(id){
@@ -292,7 +385,7 @@ async function extract(id){
    else{
     const j=await api('/extract',{images:imgs,...catCtx(),single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
     if(!L.length)throw new Error('AI 没有识别出食谱');
-    for(const x of L){const d=findDup(x);
+    for(const x of L){x.ingredients=normIng(x.ingredients);const d=findDup(x);
      if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
      x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=fixCat(x.category)||'未分类';
      if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);added.push(x.id);if(tot>1)r=x}
@@ -345,7 +438,7 @@ async function migrate(){
 async function exp(){const f=new File([JSON.stringify(S)],'prepo-backup.json',{type:'application/json'});
  if(navigator.canShare&&navigator.canShare({files:[f]}))return navigator.share({files:[f]});
  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click()}
-async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv,mine:d.mine,map:d.map,fix:d.fix,cmpHide:d.cmpHide};initCats();await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
+async function imp(f){if(!f)return;try{const d=JSON.parse(await f.text());if(!Array.isArray(d.recipes))throw 0;S={recipes:d.recipes,cats:d.cats||[],catv:d.catv,mine:d.mine,map:d.map,fix:d.fix,cmpHide:d.cmpHide,cmpBase:d.cmpBase};initCats();await save();stack=[];cur={v:'home'};draw();migrate()}catch(e){alert('备份文件不对')}}
 /* 手势：右划返回，左右划切换 */
 let tx,ty;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
 document.addEventListener('touchend',e=>{if(e.target.closest('textarea,input'))return;const dx=e.changedTouches[0].clientX-tx,dy=e.changedTouches[0].clientY-ty;if(Math.abs(dx)<70||Math.abs(dy)>Math.abs(dx)*.6)return;
