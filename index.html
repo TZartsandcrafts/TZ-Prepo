@@ -10,7 +10,8 @@
 <style>
 :root{--o:#FF6B1A;--y:#FFB300;--r:#E5262B;--bg:#F4F5F7;--card:#fff;--tx:#1F2328;--mu:#6B7280}
 @media(prefers-color-scheme:dark){:root{--bg:#15171B;--card:#22252B;--tx:#F3F4F6;--mu:#9CA3AF}}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.6 -apple-system,"PingFang SC",sans-serif}
+*{box-sizing:border-box}input,textarea,select,button{outline:none}input:focus,textarea:focus,select:focus,button:focus{outline:none}
+.yes{color:#16A34A;font-weight:800;font-size:20px}.no{color:#E5262B;font-weight:800;font-size:20px}html,body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.6 -apple-system,"PingFang SC",sans-serif}
 body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:12px 14px;background:linear-gradient(90deg,var(--o),var(--y));color:#fff;font-size:21px;font-weight:700}
 .bar span{flex:1}.bar small.ver{font-size:12px;font-weight:400;margin-left:6px;opacity:.9}.bar button{background:none;border:0;color:#fff;font-size:22px;padding:6px 10px}
@@ -61,7 +62,7 @@ h3 small{font-size:14px;color:var(--mu);font-weight:400}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.19';
+const P='prepo:',DB='prepo_kv',VER='0.1.20';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -126,9 +127,9 @@ function repHtml(d,names){
  if(sh('var')){n++;o+='<h2>材料品种</h2>';
   if(!R.length)o+=noRows;else{
    const cnt=r=>r.c.filter(Boolean).length,Sv=GRPS.flatMap(g=>R.filter(r=>r.grp===g[0]).map((r,i)=>[r,i]).sort((a,b)=>cnt(b[0])-cnt(a[0])||a[1]-b[1]).map(x=>x[0]));
-   o+=tw(grpBody(Sv,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map(c=>`<td>${c?'✅':'❎'}</td>`).join('')}</tr>`));
+   o+=tw(grpBody(Sv,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map(c=>`<td>${c?'<span class=yes>✓</span>':'<span class=no>✗</span>'}</td>`).join('')}</tr>`));
    const all=R.filter(r=>cnt(r)===names.length).length,only=names.map((nm,j)=>[nm,R.filter(r=>cnt(r)===1&&r.c[j]).length]).filter(x=>x[1]);
-   o+=`<p class=m>✅ 有　❎ 没有。所有食谱都有的 ${all} 种${only.map(x=>`；仅「${e(x[0])}」有的 ${x[1]} 种`).join('')}。${multi?'同一种材料出现在不同组（如面团里的糖和糖水里的糖）算不同的项。':''}</p>`}}
+   o+=`<p class=m><span class=yes>✓</span> 有　<span class=no>✗</span> 没有。所有食谱都有的 ${all} 种${only.map(x=>`；仅「${e(x[0])}」有的 ${x[1]} 种`).join('')}。${multi?'同一种材料出现在不同组（如面团里的糖和糖水里的糖）算不同的项。':''}</p>`}}
  if(sh('in')){n++;o+='<h2>材料比例</h2>';
   if(!R.length)o+=noRows;else{
    const cell=(r,c,j)=>!c?'<td>—</td>':c.g===null?`<td>${e(c.amt||'适量')}</td>`:`<td><b>${c.est?'≈':''}${fmt(c.g)} g</b>${inTot(r)&&tot[j]?`<small>${f1(c.g/tot[j]*100)}%</small>`:''}${base[j].g?`<small class=rel>${f1(c.g/base[j].g*100)}%</small>`:''}</td>`;
