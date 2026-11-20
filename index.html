@@ -62,7 +62,7 @@ h3 small{font-size:14px;color:var(--mu);font-weight:400}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.20';
+const P='prepo:',DB='prepo_kv',VER='0.1.21';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -280,7 +280,7 @@ add(id){
  return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
 result(a){
  const n=a.added.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),d=a.dups.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean);
- return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>重复 ${d.length} 个，未重复添加</h2>${d.length?'<p class=m>以下食谱已有记录，已提醒你；它们会在建议时优先考虑。</p>':''}${d.map(rowOf).join('')}<button class=btn onclick="stack=[];cur={v:\'home\'};draw()">回到食谱库</button></div>`},
+ return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>重复 ${d.length} 个，未重复添加</h2>${d.length?'<p class=m>以下食谱已有记录，已提醒你；它们会在建议时优先考虑。</p>':''}${d.map(rowOf).join('')}${S.lastAI&&Date.now()-S.lastAI.at<600000&&/extract|merge/.test(S.lastAI.path)?`<p class=m>AI 用时：${esc(tline(S.lastAI))}</p>`:''}<button class=btn onclick="stack=[];cur={v:\'home\'};draw()">回到食谱库</button></div>`},
 detail(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('食谱')+'<div class=pg>食谱不存在</div>';
  return hdr('食谱')+`<div class=pg>${body(r)}<button class="btn y" onclick="FILES=[];go('add','${id}')">继续添加截图 ›</button><button class="btn y" onclick="go('scale','${id}');scalePrep('${id}')">换算用量 ›</button>
@@ -325,7 +325,7 @@ scale(id){
   <h2>目标模具</h2><input placeholder="例：20×10×10、直径18 高7、周长56 高7、1800ml、450g吐司模、50g（单个重量）" value="${esc(SC.tm)}" oninput="scMold('t',this.value)" onchange="scMold('t',this.value,1)"><div class=cnt><span>数量</span><input id=tcn type=number inputmode=numeric min=1 max=20 value="${SC.tc||1}" oninput="scCount('t',this.value)"><span>个模具</span></div><p id=tst class=m>${moldStatus('t')}</p><p class=m>规格只写单个模具，同时用了几个就在“数量”里填几个（比如 900g 吐司模做 4 条，规格写 900g吐司模，数量填 4）；换算按总体积比例。也可以只填单个重量，例如 60g（数量填 8 就是 8 个各 60g），按总重量比例换算——原和目标要用同一种方式（都填模具/体积，或都填单个重量）。尺寸默认厘米，写“mm”按毫米算；规格名（如“8寸圆模”）由 AI 估算体积。</p>`;
  return hdr('换算用量')+`<div class=pg><h1>${esc(r.name)}</h1><div class=seg>${M.map(([k,t])=>`<button class="${SC.mode===k?'on':''}" onclick="SC.mode='${k}';draw()">${t}</button>`).join('')}</div>${inp}<p id=st class=m></p><button class="btn g" onclick="scalePrep('${id}',1)">重新让 AI 估算克数</button><button class="btn g" onclick="go('grp','${id}')">调整材料分组 ›</button><div id=sres>${scaleBody(r)}</div></div>`},
 set(){
- return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>对比报告显示项</h2>${CMPK.map(([k,t])=>`<button class=row onclick="cmpHide('${k}')">${(S.cmpHide||[]).includes(k)?'☐':'☑'} ${t}</button>`).join('')}<p class=m>取消勾选的项，在对比报告里不显示。</p><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
+ return hdr('设置')+`<div class=pg><h2>AI 服务地址</h2><input id=wu value="${esc(WK())}" placeholder="https://prepo-ai.你的名字.workers.dev"><button class=btn onclick="localStorage.setItem(P+'workerUrl',$('#wu').value.trim());back();migrate()">保存</button><h2>最近一次 AI 调用</h2><p class=m>${S.lastAI?`${PN[S.lastAI.path]||S.lastAI.path} · ${new Date(S.lastAI.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}<br>${esc(tline(S.lastAI))}`:'还没有记录（做一次提取就有了）'}</p><h2>对比报告显示项</h2>${CMPK.map(([k,t])=>`<button class=row onclick="cmpHide('${k}')">${(S.cmpHide||[]).includes(k)?'☐':'☑'} ${t}</button>`).join('')}<p class=m>取消勾选的项，在对比报告里不显示。</p><h2>备份</h2><button class="btn g" onclick="exp()">导出备份</button><input type=file accept=".json" onchange="imp(this.files[0])"><p class=m>导入只会覆盖有谱自己的数据。共 ${S.recipes.length} 个食谱。版本 ${VER}</p></div>`}
 };
 function openDr(){const ck=x=>x?'✓ ':'',c=(k,n)=>`<button class=row style="border-left-color:${k?catColor(k):'var(--y)'}" data-c="${esc(k)}" onclick="F.cat=this.dataset.c;F.made='';draw()">${ck(F.cat===k&&!F.made)}${esc(k||'全部')} <small>${n}</small></button>`,
  s=(k,t)=>`<button class=row onclick="F.sort='${k}';draw()">${ck(F.sort===k)}${t}</button>`;
@@ -351,9 +351,16 @@ const setCat=(id,c)=>{if(!c)return;const rr=S.recipes.find(x=>x.id===id),old=rr.
   if(old&&old!=='未分类')S.map[old]=c;delete S.map[c];
   S.mine=S.mine||[];if(!S.mine.includes(c))S.mine.push(c)}
  rr.category=c;rr.cv=2;save();back();draw(cur.y)};
+/* AI 调用记录：Worker 会随响应返回试了哪些模型、各用了多久（_t）；记在 S.lastAI（设置页可看），最近 10 分钟内成功的模型会优先试 */
+const prefM=()=>S.prefModel&&Date.now()-(S.prefAt||0)<600000?S.prefModel:'';
+function noteAI(path,t){const a=Array.isArray(t.attempts)?t.attempts:[];S.lastAI={path,at:Date.now(),model:t.model||'',total:t.total||0,att:a.slice(0,5)};if(t.model){S.prefModel=t.model;S.prefAt=Date.now()}save()}
+const sn=m=>String(m||'').replace(/^gemini-/,'');
+const tline=a=>(a.att||[]).map(x=>`${sn(x.m)} ${x.ok?'成功':(x.why||'失败')} ${(x.ms/1000).toFixed(1)}秒`).join(' → ')+(a.total?`（共 ${(a.total/1000).toFixed(1)} 秒）`:'');
+const PN={'/extract':'提取','/merge':'续传合并','/suggest':'建议','/compare':'对比','/prep':'换算准备','/mold':'模具估算','/recat':'重新分类'};
 async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置里填写 AI 服务地址');const ac=new AbortController(),tm=setTimeout(()=>ac.abort(),130000);let r,j;
- try{r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),signal:ac.signal});j=await r.json().catch(e=>{if(e.name==='AbortError')throw e;return{}})}
+ try{r=await fetch(u.replace(/\/$/,'')+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...b,prefer:prefM()}),signal:ac.signal});j=await r.json().catch(e=>{if(e.name==='AbortError')throw e;return{}})}
  catch(e){throw new Error(e.name==='AbortError'?'等待超过 130 秒，已中止，请稍后重试':'连不上 AI 服务（检查设置里的 Worker 地址，以及 Worker 的 ALLOW_ORIGIN）')}finally{clearTimeout(tm)}
+ if(j&&j._t)noteAI(path,j._t);
  if(!r.ok)throw new Error(j.error||('服务返回错误 '+r.status));return j}
 const shrink=f=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1400/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.8).split(',')[1])};i.onerror=()=>ok(null);i.src=URL.createObjectURL(f)});
 function findDup(r){const n=norm(r.name),a=new Set((r.ingredients||[]).map(i=>norm(i.name||i)));for(const x of S.recipes){const m=norm(x.name),b=new Set((x.ingredients||[]).map(i=>norm(i.name||i)));let k=0;a.forEach(t=>b.has(t)&&k++);const j=k/Math.max(1,a.size+b.size-k);if(n&&m&&(m===n||((m.includes(n)||n.includes(m))&&j>.5)||j>.85))return x}}
