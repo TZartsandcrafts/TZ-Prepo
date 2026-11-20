@@ -40,7 +40,7 @@ textarea{min-height:140px}
 .ing li span small{display:block;color:var(--mu);font-size:14px;font-weight:400}h3{font-size:18px;margin:1.1em 0 .2em}
 .cbar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid rgba(128,128,128,.3);padding:8px 16px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -2px 8px rgba(0,0,0,.08)}.cbar .btn{margin:6px 0 0}.cbar p{margin:0;min-height:1.4em;font-size:15px}
 .cp{padding-bottom:calc(140px + env(safe-area-inset-bottom))}.row.sel{box-shadow:inset 0 0 0 2px var(--o)}.hc .mig{bottom:calc(140px + env(safe-area-inset-bottom))}
-.seg.s{margin:6px 0}.seg.s button{min-height:36px;font-size:15px;border-width:1.5px}
+.seg.gs button{font-size:14px;padding:0}.seg.s{margin:6px 0}.seg.s button{min-height:36px;font-size:15px;border-width:1.5px}
 h3 small{font-size:14px;color:var(--mu);font-weight:400}
 .gi{padding:10px 0;border-bottom:1px solid rgba(128,128,128,.3)}.gi>span{display:block;font-weight:700}.gi small{display:block;color:var(--mu);font-weight:400;font-size:14px}
 .tb tr.gt td{position:static;box-shadow:none;background:var(--bg);color:var(--o);font-weight:700;text-align:left}
@@ -62,7 +62,7 @@ h3 small{font-size:14px;color:var(--mu);font-weight:400}
 </style></head><body>
 <div id="app"></div><div id="dr"><div id="drc"></div></div><div id=mig class=mig onclick="this.style.display='none'"></div>
 <script>
-const P='prepo:',DB='prepo_kv',VER='0.1.21';
+const P='prepo:',DB='prepo_kv',VER='0.1.22';
 const WK=()=>localStorage.getItem(P+'workerUrl')||'';
 /* 存储层：只读写自己的 prepo_kv；以后要加 Firebase 同步，只需替换这两个函数 */
 const idb=()=>new Promise((ok,no)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>ok(q.result);q.onerror=()=>no(q.error)});
@@ -108,18 +108,18 @@ let RC=null;
 const ubase=()=>S.cmpBase>0?S.cmpBase:500,f1=x=>Math.round(x*10)/10;
 const grpBody=(R,N,row)=>{const gs=GRPS.filter(g=>R.some(r=>r.grp===g[0]));return gs.map(g=>(gs.length>1?`<tr class=gt><td colspan=${N+1}>${g[1]}</td></tr>`:'')+R.filter(r=>r.grp===g[0]).map(row).join('')).join('')};
 /* 统一基准粉量表：每款的粉类合计（只算面团组）都调成同一个基准粉量，再看各材料多少克（输入框改基准粉量时只重画这张表） */
-function xtbHtml(){const{names,R,tot,base,multi}=RC,u=ubase(),N=names.length;
- return `<div class=tw><table class=tb><tr><th>对比项</th>${names.map(n=>`<th>${esc(n)}</th>`).join('')}</tr>${grpBody(R,N,r=>`<tr><td>${esc(r.name)}</td>${r.c.map((c,j)=>!c?'<td>—</td>':c.g===null?`<td>${esc(c.amt||'适量')}</td>`:base[j].g?`<td><b>${fmt(c.g*u/base[j].g)} g</b></td>`:'<td>—</td>').join('')}</tr>`)}<tr class=sum><td>${multi?'面团合计':'合计'}</td>${tot.map((t,j)=>`<td>${t&&base[j].g?fmt(t*u/base[j].g)+' g':'—'}</td>`).join('')}</tr></table></div>`}
+function xtbHtml(){const{names,R,tot,base,sumL}=RC,u=ubase(),N=names.length;
+ return `<div class=tw><table class=tb><tr><th>对比项</th>${names.map(n=>`<th>${esc(n)}</th>`).join('')}</tr>${grpBody(R,N,r=>`<tr><td>${esc(r.name)}</td>${r.c.map((c,j)=>!c?'<td>—</td>':c.g===null?`<td>${esc(c.amt||'适量')}</td>`:base[j].g?`<td><b>${fmt(c.g*u/base[j].g)} g</b></td>`:'<td>—</td>').join('')}</tr>`)}<tr class=sum><td>${sumL}</td>${tot.map((t,j)=>`<td>${t&&base[j].g?fmt(t*u/base[j].g)+' g':'—'}</td>`).join('')}</tr></table></div>`}
 function setBase(v){const n=parseFloat(v);if(!(n>0))return;S.cmpBase=n;save();const e=$('#xtb');if(e)e.innerHTML=xtbHtml()}
 function repHtml(d,names){
  const H=S.cmpHide||[],sh=k=>!H.includes(k),A=x=>Array.isArray(x)?x:[],N=x=>typeof x==='number'&&isFinite(x)?x:null,e=esc,NN=names.length;
  const pick=(arr,n,j)=>{const a=A(arr);return a.find(x=>x&&x.recipe===n)||(a.length===names.length?a[j]:null)||null};
  const R=A(d.rows).filter(r=>r&&r.name).map(r=>({name:String(r.name),grp:gkey(r.group)||'dough',flour:!!r.flour,c:names.map((n,j)=>{const c=pick(r.cells,n,j);return c?{amt:String(c.amount||''),g:N(c.grams),est:!!c.est}:null})}));
- const D=R.filter(r=>r.grp==='dough'),DR=D.length?D:R,multi=new Set(R.map(r=>r.grp)).size>1,inTot=r=>DR===R||r.grp==='dough';
+ const D=R.filter(r=>r.grp==='dough'||r.grp==='pre'),DR=D.length?D:R,multi=new Set(R.map(r=>r.grp)).size>1,hasPre=R.some(r=>r.grp==='pre'),sumL=multi?(hasPre?'面团合计（含面种）':'面团合计'):'合计',inTot=r=>DR===R||DR.includes(r);
  const tot=names.map((_,j)=>DR.reduce((a,r)=>a+(r.c[j]&&r.c[j].g||0),0));
  const base=names.map((_,j)=>{let f=DR.reduce((a,r)=>a+(r.flour&&r.c[j]&&r.c[j].g||0),0),nm='粉类合计';
   if(!f){let m=null;DR.forEach(r=>{const g=r.c[j]&&r.c[j].g;if(g&&(!m||g>m.g))m={g,n:r.name}});if(m){f=m.g;nm=m.n}else nm=''}return{g:f,n:nm}});
- RC={names,R,tot,base,multi};
+ RC={names,R,tot,base,multi,sumL};
  const head=`<tr><th>对比项</th>${names.map(n=>`<th>${e(n)}</th>`).join('')}</tr>`,tw=b=>`<div class=tw><table class=tb>${head}${b}</table></div>`;
  let o=`<p class=m>对比：${names.map(e).join(' · ')}</p><p class=m>用量按常用换算估成克，带“≈”的是估算值，仅供参考。</p>`,n=0;
  const noRows='<p class=m>AI 没有返回材料表，请返回重新对比一次。</p>';
@@ -133,8 +133,8 @@ function repHtml(d,names){
  if(sh('in')){n++;o+='<h2>材料比例</h2>';
   if(!R.length)o+=noRows;else{
    const cell=(r,c,j)=>!c?'<td>—</td>':c.g===null?`<td>${e(c.amt||'适量')}</td>`:`<td><b>${c.est?'≈':''}${fmt(c.g)} g</b>${inTot(r)&&tot[j]?`<small>${f1(c.g/tot[j]*100)}%</small>`:''}${base[j].g?`<small class=rel>${f1(c.g/base[j].g*100)}%</small>`:''}</td>`;
-   o+=tw(grpBody(R,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map((c,j)=>cell(r,c,j)).join('')}</tr>`)+`<tr class=sum><td>${multi?'面团合计':'合计'}</td>${tot.map(t=>`<td>${t?fmt(t)+' g':'—'}</td>`).join('')}</tr><tr class=sum><td>基准粉量</td>${base.map(b=>`<td>${b.g?fmt(b.g)+' g':'—'}${b.n&&b.n!=='粉类合计'?`<small>${e(b.n)}</small>`:''}</td>`).join('')}</tr>`);
-   o+='<p class=m>每格三行：用量（克）｜占该款面团总重的 %（灰）｜相对基准粉量的 %（橙，面团里的粉类合计 = 100%）。'+(multi?'馅料、表面装饰、辅助液（烫煮糖水、碱水等）不并入面团的合计和灰色百分比，只显示相对面团基准粉量的橙色百分比。':'')+'“适量”等无法换算的不计入。没有粉类的食谱，以克数最大的材料为基准。</p>'}}
+   o+=tw(grpBody(R,NN,r=>`<tr><td>${e(r.name)}</td>${r.c.map((c,j)=>cell(r,c,j)).join('')}</tr>`)+`<tr class=sum><td>${sumL}</td>${tot.map(t=>`<td>${t?fmt(t)+' g':'—'}</td>`).join('')}</tr><tr class=sum><td>基准粉量</td>${base.map(b=>`<td>${b.g?fmt(b.g)+' g':'—'}${b.n&&b.n!=='粉类合计'?`<small>${e(b.n)}</small>`:''}</td>`).join('')}</tr>`);
+   o+='<p class=m>每格三行：用量（克）｜占该款面团总重的 %（灰）｜相对基准粉量的 %（橙，面团里的粉类合计 = 100%）。'+(hasPre?'面种和面团合在一起算：面种里的粉也计入基准粉量（也就是常说的总粉量烘焙百分比）。':'')+(multi?'馅料、表面装饰、辅助液（烫煮糖水、碱水等）不并入面团的合计和灰色百分比，只显示相对面团基准粉量的橙色百分比。':'')+'“适量”等无法换算的不计入。没有粉类的食谱，以克数最大的材料为基准。</p>'}}
  if(sh('x')){n++;o+='<h2>统一基准粉量对比</h2>';
   if(!R.length)o+=noRows;else o+=`<p class=m>把每款面团里的粉类合计都调成同一个基准粉量，其它材料（含馅料、表面装饰、辅助液）按同样的倍数折算，这样不同款才能直接比较。</p><div class=cnt><span>基准粉量</span><input type=number inputmode=decimal min=1 value="${ubase()}" oninput="setBase(this.value)"><span>克</span></div><div id=xtb>${xtbHtml()}</div>`}
  if(sh('oth')){n++;o+='<h2>其它参考比例</h2>';const O=A(d.other).filter(t=>t&&t.title);
@@ -153,12 +153,12 @@ async function compare(){
 let SC={},MC={};
 const fmt=x=>x>=20?String(Math.round(x)):String(Math.round(x*10)/10);
 const sigOf=r=>(r.ingredients||[]).map(i=>(i.name||i)+'|'+(i.amount||'')).join(';');
-/* 材料分组（v0.1.19）：grp = dough 面团 / fill 馅料 / top 表面装饰 / aux 辅助液（烫煮糖水、碱水、刷面液等，不算进面包本体）；没写 grp 的按面团。
+/* 材料分组（v0.1.19，v0.1.22 加面种）：grp = pre 面种（中种、汤种、波兰种、老面、酵头等需要提前做的）/ dough 面团 / fill 馅料 / top 表面装饰 / aux 辅助液（烫煮糖水、碱水、刷面液等，不算进面包本体）；没写 grp 的按面团。
    r.gm = 每组怎么换算（m: f 跟比例 / k 保持原量 / c 自定义系数 x；src: ai / user），r.gv=1 表示已做过 AI 分组 */
-const GRPS=[['dough','面团'],['fill','馅料'],['top','表面装饰'],['aux','辅助液']],SCOPE=['dough','fill','top'];
+const GRPS=[['pre','面种'],['dough','面团'],['fill','馅料'],['top','表面装饰'],['aux','辅助液']],SCOPE=['pre','dough','fill','top'];
 const gname=k=>(GRPS.find(g=>g[0]===k)||GRPS[0])[1];
 function gkey(s){s=String(s||'').trim();if(!s)return '';const f=GRPS.find(g=>g[0]===s||g[1]===s);if(f)return f[0];
- if(/馅|夹心/.test(s))return 'fill';if(/装饰|表面|撒|酥粒/.test(s))return 'top';if(/糖水|碱水|烫煮|浸泡|刷|糖浆|辅助|液/.test(s))return 'aux';if(/面团|主面|中种|汤种|老面|酵头|面糊/.test(s))return 'dough';return ''}
+ if(/馅|夹心/.test(s))return 'fill';if(/装饰|表面|撒|酥粒/.test(s))return 'top';if(/面种|酵头|中种|汤种|老面|波兰|鲁邦|液种|发酵种|酵种|预发酵/.test(s))return 'pre';if(/糖水|碱水|烫煮|浸泡|刷|糖浆|辅助|液/.test(s))return 'aux';if(/面团|主面|面糊/.test(s))return 'dough';return ''}
 const gOf=i=>gkey(i&&i.grp)||'dough';
 const gmOf=(r,g)=>(r.gm&&r.gm[g])||{m:g==='aux'?'k':'f',x:1,why:'',src:'default'};
 function normIng(list,old){
@@ -175,6 +175,7 @@ function parseIngTxt(lines){let cg='';return lines.flatMap(l=>{const hm=l.match(
  const m=l.split(/[｜|]/),nm=m[0].trim();return nm?[{name:nm,amount:m.slice(1).join('｜').trim(),...(cg?{grp:cg}:{})}]:[]})}
 function setGM(g,m){const r=S.recipes.find(x=>x.id===SC.id);r.gm=r.gm||{};const o=gmOf(r,g);r.gm[g]={m,x:m==='c'&&o.m==='c'&&o.x>0?o.x:1,why:'',src:'user'};save();renderScale()}
 function setGX(g,v){const r=S.recipes.find(x=>x.id===SC.id),x=parseFloat(v);if(!(x>0))return;r.gm=r.gm||{};r.gm[g]={m:'c',x,why:'',src:'user'};save();renderScale()}
+async function regroup(id){const r=S.recipes.find(x=>x.id===id);if(!r)return;(r.ingredients||[]).forEach(i=>{delete i.grp});if(r.gm)Object.keys(r.gm).forEach(k=>{if(r.gm[k].src!=='user')delete r.gm[k]});r.gv=0;await save();await scalePrep(id,1)}
 function setIG(id,k,g){const r=S.recipes.find(x=>x.id===id);r.ingredients[k].grp=g;save();draw(scrollY)}
 const moldNote=r=>r.mold&&(r.mold.vol>0||r.mold.ug>0)?(r.mold.src==='user'?'你保存的':'AI 识别，请核对（改了点“保存”就会记住；数量也请核对）'):'';
 function moldStatus(w){const v=SC[w==='o'?'ov':'tv'],c=SC[w+'c']||1,x=SC[w+'x'],wk=(SC[w+'k']||'v')==='w',U=wk?' g':' ml';if(!(v>0))return x||'';return (x?x+'，':'')+(wk?'单个重量 = ':'单个体积 ≈ ')+fmt(v)+U+(c>1?` × ${c} 个 = 共 ${fmt(v*c)}${U}`:'')}
@@ -208,7 +209,7 @@ async function scalePrep(id,force){
   r.gv=1;
   if(!r.mold||r.mold.src!=='user'){const m=j.mold||{};r.mold={text:String(m.text||'').slice(0,60),vol:typeof m.vol==='number'&&m.vol>0?m.vol:null,ug:typeof m.unit_g==='number'&&m.unit_g>0?m.unit_g:null,count:Math.max(1,Math.min(20,Math.round(Number(m.count))||1)),src:'ai'}}
   if(SC.id===id&&!SC.omEdited){SC.om=r.mold.text;SC.ov=r.mold.vol||r.mold.ug||null;SC.ok=r.mold.vol>0?'v':(r.mold.ug>0?'w':'v');SC.oc=r.mold.count||1;SC.ox=moldNote(r)}
-  await save();if(cur.v==='scale'&&cur.a===id)draw(scrollY)
+  await save();if((cur.v==='scale'||cur.v==='grp')&&cur.a===id)draw(scrollY)
  }catch(e){const s=$('#st');if(s)s.textContent='估算失败：'+e.message+'（可以返回重进再试）'}finally{stop()}}
 async function scMold(w,v,fin){
  const T=w==='o'?'om':'tm',V=w==='o'?'ov':'tv',st=$('#'+w+'st');SC[T]=v;if(w==='o')SC.omEdited=true;
@@ -234,8 +235,8 @@ function scaleBody(r){
  if(SC.mode==='tot'){
   const T=parseFloat(SC.tot);let P=0,F=0;SCOPE.forEach(gk=>{const s=sumG(gk);if(mo(gk).m==='f')P+=s;else F+=s*fx(gk)});
   if(!scopeOld)msg='还没有可换算的克数（AI 估算中，或这个食谱的用量都无法换算）';
-  else if(!(T>0))msg='输入想要的总重量（克）。总重指面团＋馅料＋表面装饰，烫煮糖水、碱水等辅助液不算';
-  else if(!P)msg='面团、馅料、表面装饰都设成了“保持原量”或“自定义”，没有跟比例的组，没法按总重量换算';
+  else if(!(T>0))msg='输入想要的总重量（克）。总重指面包本体（面种、面团、馅料、表面装饰）加起来的总重，烫煮糖水、碱水等辅助液不算';
+  else if(!P)msg='面种、面团、馅料、表面装饰都设成了“保持原量”或“自定义”，没有跟比例的组，没法按总重量换算';
   else if(T<=F)msg='目标总重量比“保持原量/自定义”的部分还小，请调大';
   else k=(T-F)/P}
  else if(SC.mode==='one'){
@@ -264,7 +265,7 @@ function scaleBody(r){
  let o='';
  if(k===null)o+=`<p class=m>${msg}</p>`;
  else{const nw=SCOPE.reduce((a,gk)=>a+sumG(gk)*mult(gk,k),0);
-  o+=`<p class=cur><b>系数 ×${Math.round(k*100)/100}（${k>=1?'放大':'缩小'}）</b><br><span>${scopeOld?`${multi?'面团＋馅料＋表面装饰':'总重'} ${fmt(scopeOld)} g → ${fmt(nw)} g`:''}${skip&&scopeOld?` · 有 ${skip} 项无法换算的（适量等）未计入`:''}</span></p>`;
+  o+=`<p class=cur><b>系数 ×${Math.round(k*100)/100}（${k>=1?'放大':'缩小'}）</b><br><span>${scopeOld?`${multi?'面包本体':'总重'} ${fmt(scopeOld)} g → ${fmt(nw)} g`:''}${skip&&scopeOld?` · 有 ${skip} 项无法换算的（适量等）未计入`:''}</span></p>`;
   if(k>2.5||k<.4)o+='<p class=m>换算幅度比较大：盐、酵母、膨松剂、香料等不一定按比例线性变化，建议适当微调。</p>';
   if(eggs.length)o+=`<p class=m>「${esc(eggs.join('、'))}」换算后不是整数，整个的材料建议按克数称取（蛋液可打散后称）。</p>`;
   if(SC.mode==='mold')o+=(SC.ok||'v')==='w'?'<p class=m>按总重量（单个重量 × 数量）的比例换算；烘烤时间和温度要自己按大小调整。</p>':'<p class=m>按体积比例换算，假设两个模具的装填高度比例相同；烘烤时间和温度要自己按体积调整。</p>'}
@@ -279,8 +280,8 @@ add(id){
  const r=id?S.recipes.find(x=>x.id===id):null;
  return hdr(r?'继续添加截图':'添加食谱')+`<div class=pg>${r?`<p class=m>给「${esc(r.name)}」补充内容：选择接下来的截图（最多 50 张，每 10 张一批），AI 会把新内容合并进这个食谱，自动去重并接在正确位置。</p>`:`<p class=m>选择食谱截图（最多 50 张）。10 张以内：AI 自己判断是一个还是多个食谱；超过 10 张：按同一个食谱处理，每 10 张一批依次提取并合并。AI 会提取名称、作者、来源、材料、步骤、注意事项和评分，自动分类并查重。</p>`}<input type=file accept="image/*" multiple onchange="FILES=[...this.files].slice(0,50);$('#fc').textContent=fcText()"><p id=fc class=m>${fcText()}</p><button class=btn id=go onclick="extract('${id||''}')">开始提取并保存</button><p class=m>截图只用来提取，用完不会保存，只保存提取出的文字。</p><p id=st class=m></p></div>`},
 result(a){
- const n=a.added.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),d=a.dups.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean);
- return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>重复 ${d.length} 个，未重复添加</h2>${d.length?'<p class=m>以下食谱已有记录，已提醒你；它们会在建议时优先考虑。</p>':''}${d.map(rowOf).join('')}${S.lastAI&&Date.now()-S.lastAI.at<600000&&/extract|merge/.test(S.lastAI.path)?`<p class=m>AI 用时：${esc(tline(S.lastAI))}</p>`:''}<button class=btn onclick="stack=[];cur={v:\'home\'};draw()">回到食谱库</button></div>`},
+ const n=a.added.map(id=>S.recipes.find(r=>r.id===id)).filter(Boolean),P=DUPX.filter(e=>!e.done);
+ return hdr('提取结果')+`<div class=pg><h2>新增 ${n.length} 个</h2>${n.map(rowOf).join('')||'<p class=m>无</p>'}<h2>判为重复 ${P.length} 个，未添加</h2>${P.length?'<p class=m>判断依据是名称和材料（含用量）的重合度，不是 AI 判断的。如果其实不是同一个食谱，点“不是重复，仍然添加”。重复的会记一次“重复收藏”，建议时优先考虑。</p>':''}${P.map(e=>{const d=S.recipes.find(r=>r.id===e.d);return d?`<p class=m>新提取的「${esc(e.x.name)}」（${(e.x.ingredients||[]).length} 种材料）和下面这条已有食谱${e.nm?'同名':'相近'}，材料重合 ${Math.round(e.j*100)}%：</p>${rowOf(d)}<button class="btn g" onclick="addDup(${DUPX.indexOf(e)})">不是重复，仍然添加</button>${e.multi?'<p class=m>这次选了超过 10 张截图，只处理了第 1 批；添加后请到详情页用“继续添加截图”补上剩下的。</p>':''}`:''}).join('')}${S.lastAI&&Date.now()-S.lastAI.at<600000&&/extract|merge/.test(S.lastAI.path)?`<p class=m>AI 用时：${esc(tline(S.lastAI))}</p>`:''}<button class=btn onclick="stack=[];cur={v:'home'};draw()">回到食谱库</button></div>`},
 detail(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('食谱')+'<div class=pg>食谱不存在</div>';
  return hdr('食谱')+`<div class=pg>${body(r)}<button class="btn y" onclick="FILES=[];go('add','${id}')">继续添加截图 ›</button><button class="btn y" onclick="go('scale','${id}');scalePrep('${id}')">换算用量 ›</button>
@@ -313,7 +314,7 @@ rep(){
  return hdr('对比报告')+`<div class=pg>${repHtml(CR.d,CR.names)}</div>`},
 grp(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('材料分组')+'<div class=pg>食谱不存在</div>';
- return hdr('材料分组')+`<div class=pg><h1>${esc(r.name)}</h1><p class=m>给每个材料选组：面团、馅料、表面装饰，辅助液＝只用于烫煮、浸泡、涂刷的液体（烫贝果的糖水、碱水包的碱水、刷面液等），不算进面包本体。改了会记住。</p>${(r.ingredients||[]).map((i,k)=>`<div class=gi><span>${esc(i.name||i)}<small>${esc(i.amount||'')}</small></span><div class="seg s">${GRPS.map(g=>`<button class="${gOf(i)===g[0]?'on':''}" onclick="setIG('${id}',${k},'${g[0]}')">${g[1]}</button>`).join('')}</div></div>`).join('')}</div>`},
+ return hdr('材料分组')+`<div class=pg><h1>${esc(r.name)}</h1><p class=m>给每个材料选组：面种＝需要提前做、发酵好再加入主面团的（中种、汤种、波兰种、老面、酵头等）；面团＝主面团本身；馅料；表面装饰；辅助液＝只用于烫煮、浸泡、涂刷的液体（烫贝果的糖水、碱水包的碱水、刷面液等），不算进面包本体。改了会记住。</p>${(r.ingredients||[]).map((i,k)=>`<div class=gi><span>${esc(i.name||i)}<small>${esc(i.amount||'')}</small></span><div class="seg s gs">${GRPS.map(g=>`<button class="${gOf(i)===g[0]?'on':''}" onclick="setIG('${id}',${k},'${g[0]}')">${g[1]}</button>`).join('')}</div></div>`).join('')}<p id=st class=m></p><button class="btn g" onclick="if(this.dataset.s){regroup('${id}')}else{this.dataset.s=1;this.textContent='再点一次确认：清掉现有分组，让 AI 重新分'}">让 AI 重新分组</button></div>`},
 scale(id){
  const r=S.recipes.find(x=>x.id===id);if(!r)return hdr('换算用量')+'<div class=pg>食谱不存在</div>';
  if(SC.id!==id)SC={id,mode:'tot',tot:'',oneI:null,oneG:'',om:(r.mold&&r.mold.text)||'',ov:(r.mold&&(r.mold.vol||r.mold.ug))||null,ok:(r.mold&&!(r.mold.vol>0)&&r.mold.ug>0)?'w':'v',oc:(r.mold&&r.mold.count)||1,ox:moldNote(r),tm:'',tv:null,tk:'v',tc:1,omEdited:false};
@@ -363,7 +364,19 @@ async function api(path,b){const u=WK();if(!u)throw new Error('请先在设置�
  if(j&&j._t)noteAI(path,j._t);
  if(!r.ok)throw new Error(j.error||('服务返回错误 '+r.status));return j}
 const shrink=f=>new Promise(ok=>{const i=new Image();i.onload=()=>{const k=Math.min(1,1400/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.8).split(',')[1])};i.onerror=()=>ok(null);i.src=URL.createObjectURL(f)});
-function findDup(r){const n=norm(r.name),a=new Set((r.ingredients||[]).map(i=>norm(i.name||i)));for(const x of S.recipes){const m=norm(x.name),b=new Set((x.ingredients||[]).map(i=>norm(i.name||i)));let k=0;a.forEach(t=>b.has(t)&&k++);const j=k/Math.max(1,a.size+b.size-k);if(n&&m&&(m===n||((m.includes(n)||n.includes(m))&&j>.5)||j>.85))return x}}
+/* 查重（v0.1.22）：只看标题不够——同名但材料不一样的不算重复。名称相同需要材料名重合 ≥70%，名称包含需要 >50%，名称不同需要 >85%；
+   且共有材料里能比较的用量（单位相同的）大部分要接近（±20%）；有一边没有材料时只看名称 */
+function amtSim(A,B){const mp=new Map();B.forEach(i=>{const p=parseAmt(i.amount);if(p)mp.set(norm(i.name||i),p)});let t=0,c=0;
+ A.forEach(i=>{const p=parseAmt(i.amount),q=mp.get(norm(i.name||i));if(p&&q&&p.u===q.u&&p.n>0&&q.n>0){t++;if(Math.abs(p.n-q.n)/Math.max(p.n,q.n)<=.2)c++}});return t>=2?c/t:null}
+function dupInfo(r){const n=norm(r.name),a=new Set((r.ingredients||[]).map(i=>norm(i.name||i)));
+ for(const x of S.recipes){const m=norm(x.name),b=new Set((x.ingredients||[]).map(i=>norm(i.name||i)));let k=0;a.forEach(t=>b.has(t)&&k++);const j=k/Math.max(1,a.size+b.size-k);
+  const nm=!!(n&&m&&m===n),inc=!!(n&&m&&(m.includes(n)||n.includes(m))),ac=amtSim(r.ingredients||[],x.ingredients||[]),close=ac===null||ac>=.6;
+  if(a.size&&b.size?(((nm&&j>=.7)||(inc&&j>.5)||j>.85)&&close):nm)return{x,j,nm}}}
+const findDup=r=>(dupInfo(r)||{}).x;
+let DUPX=[];
+function addDup(k){const e=DUPX[k];if(!e||e.done)return;const d=S.recipes.find(r=>r.id===e.d);if(d&&(d.saves||1)>1)d.saves--;
+ const x=e.x;x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=fixCat(x.category)||'未分类';
+ if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);e.done=true;if(cur.a&&cur.a.added)cur.a.added.push(x.id);save();draw(scrollY)}
 const wait=m=>{const t0=Date.now(),f=()=>{const e=$('#st');if(e)e.textContent=m+'，已等待 '+Math.round((Date.now()-t0)/1000)+' 秒…'};f();const id=setInterval(f,1000);return()=>clearInterval(id)};
 const busy=(on,m)=>{$('#go').disabled=on;$('#st').textContent=m||''};
 const fcText=()=>FILES.length?`已选 ${FILES.length} 张，共 ${Math.ceil(FILES.length/10)} 批`:'还没有选择截图';
@@ -383,7 +396,7 @@ async function extract(id){
  if(!FILES.length)return busy(false,'请先选择截图');
  const bs=chunk(FILES,10),tot=bs.length;let stop=()=>{},r=id?S.recipes.find(x=>x.id===id):null,done=0,i=0;
  if(id&&!r)return busy(false,'这个食谱已经不存在');
- const snap=r?slim(r):null,added=[],dups=[];
+ const snap=r?slim(r):null,added=[],dups=[];DUPX=[];
  try{
   for(i=0;i<tot;i++){
    const tag=tot>1?`第 ${i+1}/${tot} 批 · `:'';
@@ -393,8 +406,8 @@ async function extract(id){
    else{
     const j=await api('/extract',{images:imgs,...catCtx(),single:tot>1}),L=(j.recipes||[]).filter(x=>x&&x.name).slice(0,tot>1?1:99);
     if(!L.length)throw new Error('AI 没有识别出食谱');
-    for(const x of L){x.ingredients=normIng(x.ingredients);const d=findDup(x);
-     if(d){d.saves=(d.saves||1)+1;dups.push(d.id);continue}
+    for(const x of L){x.ingredients=normIng(x.ingredients);const di=dupInfo(x),d=di&&di.x;
+     if(d){d.saves=(d.saves||1)+1;dups.push(d.id);DUPX.push({x,d:d.id,j:di.j,nm:di.nm,multi:tot>1});continue}
      x.id='r'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);x.saves=1;x.made='';x.created=Date.now();x.cv=2;x.category=fixCat(x.category)||'未分类';
      if(!S.cats.includes(x.category))S.cats.push(x.category);S.recipes.push(x);added.push(x.id);if(tot>1)r=x}
     await save();
